@@ -1,2 +1,0 @@
-# Khedama
-Khedama
