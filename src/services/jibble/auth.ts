@@ -5,6 +5,11 @@ interface TokenCache {
   expiresAt: number;
 }
 
+interface TokenResponse {
+  access_token: string;
+  expires_in: number;
+}
+
 let tokenCache: TokenCache | null = null;
 
 export async function getJibbleToken(): Promise<string> {
@@ -15,41 +20,21 @@ export async function getJibbleToken(): Promise<string> {
     return tokenCache.token;
   }
 
-  // Get Jibble credentials from settings
-  const { data: configData, error: configError } = await supabase
-    .from('settings')
-    .select('value')
-    .eq('key', 'jibble_config')
-    .single();
+  try {
+    // Appel à notre fonction Edge
+    const { data, error } = await supabase.functions.invoke<TokenResponse>('jibble-proxy');
 
-  if (configError) throw configError;
-  
-  const { apiKey, apiSecret } = configData.value;
+    if (error) throw error;
+    if (!data) throw new Error('No token data received');
 
-  // Request new token
-  const response = await fetch('https://identity.prod.jibble.io/connect/token', {
-    method: 'POST',
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/x-www-form-urlencoded'
-    },
-    body: new URLSearchParams({
-      'grant_type': 'client_credentials',
-      'client_id': apiKey,
-      'client_secret': apiSecret
-    })
-  });
+    tokenCache = {
+      token: data.access_token,
+      expiresAt: now + (data.expires_in * 1000)
+    };
 
-  if (!response.ok) {
+    return data.access_token;
+  } catch (error) {
+    console.error('Failed to get Jibble token:', error);
     throw new Error('Failed to get Jibble token');
   }
-
-  const data = await response.json();
-  
-  tokenCache = {
-    token: data.access_token,
-    expiresAt: now + (data.expires_in * 1000)
-  };
-
-  return data.access_token;
 }

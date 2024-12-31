@@ -1,31 +1,33 @@
 import { JibblePerson, JibbleResponse, TimesheetSummary } from './types';
-import { getJibbleToken } from './auth';
-import { JIBBLE_API } from './constants';
+import { supabase } from '../../lib/supabase';
+
+interface JibbleApiRequest {
+  endpoint: string;
+  params?: Record<string, any>;
+}
 
 async function fetchJibble<T>(endpoint: string, params = {}): Promise<T> {
-  const token = await getJibbleToken();
-  const url = new URL(endpoint, JIBBLE_API.BASE_URL);
-  
-  Object.entries(params).forEach(([key, value]) => {
-    url.searchParams.append(key, String(value));
-  });
-
-  const response = await fetch(url.toString(), {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/json'
+  const { data, error } = await supabase.functions.invoke<T>('jibble-proxy', {
+    body: {
+      endpoint,
+      params
     }
   });
 
-  if (!response.ok) {
-    throw new Error(`Jibble API error: ${response.status}`);
+  if (error) {
+    console.error('Jibble API error:', error);
+    throw error;
   }
 
-  return response.json();
+  if (!data) {
+    throw new Error('No data received from Jibble API');
+  }
+
+  return data;
 }
 
 export async function getEmployees(): Promise<JibblePerson[]> {
-  const response = await fetchJibble<JibbleResponse<JibblePerson>>(JIBBLE_API.ENDPOINTS.PEOPLE);
+  const response = await fetchJibble<JibbleResponse<JibblePerson>>('/people');
   return response.value.filter(person => 
     person.status === 'Joined' && person.role !== 'Owner'
   );
@@ -37,7 +39,7 @@ export async function getAttendanceForPeriod(
   endDate: string
 ): Promise<TimesheetSummary[]> {
   const response = await fetchJibble<JibbleResponse<TimesheetSummary>>(
-    JIBBLE_API.ENDPOINTS.TIMESHEETS,
+    '/timesheets',
     {
       period: 'Custom',
       date: startDate,
