@@ -1,14 +1,27 @@
-import { supabase } from '../../lib/supabase';
-import type { JibblePerson, JibbleResponse, TimesheetSummary } from './types';
+import { JibblePerson, JibbleResponse, TimesheetSummary } from './types';
+import { getJibbleToken } from './auth';
 import { JIBBLE_API } from './constants';
 
 async function fetchJibble<T>(endpoint: string, params = {}): Promise<T> {
-  const { data, error } = await supabase.functions.invoke('jibble', {
-    body: { endpoint, params }
+  const token = await getJibbleToken();
+  const url = new URL(endpoint, JIBBLE_API.BASE_URL);
+  
+  Object.entries(params).forEach(([key, value]) => {
+    url.searchParams.append(key, String(value));
   });
 
-  if (error) throw error;
-  return data;
+  const response = await fetch(url.toString(), {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/json'
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Jibble API error: ${response.status}`);
+  }
+
+  return response.json();
 }
 
 export async function getEmployees(): Promise<JibblePerson[]> {

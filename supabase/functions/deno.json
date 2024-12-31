@@ -1,8 +1,0 @@
-{
-    "tasks": {
-      "start": "deno run --allow-net --allow-env --allow-read index.ts"
-    },
-    "imports": {
-      "http/": "https://deno.fresh.dev/std@v1/http/"
-    }
-  }
