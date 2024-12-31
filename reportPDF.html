@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 40px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th, td {
+        border: 1px solid black;
+        padding: 8px;
+        text-align: left;
+      }
+      th {
+        background-color: #f2f2f2;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Rapport pour <?= employeeName ?></h1>
+    <p>Contrat Horaire : <?= contractDailyHours ?>h/jour</p>
+
+    <h2>Semaine 1 : <?= firstWeekStart ?> - <?= firstWeekEnd ?></h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Heures Normales</th>
+          <th>Heures Supplémentaires</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><?= normalHoursWeek1 ?>h</td>
+          <td><?= extraHoursWeek1 ?>h</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Semaine 2 : <?= secondWeekStart ?> - <?= secondWeekEnd ?></h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Heures Normales</th>
+          <th>Heures Supplémentaires</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><?= normalHoursWeek2 ?>h</td>
+          <td><?= extraHoursWeek2 ?>h</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Total des heures</h2>
+    <p>Total des heures normales : <?= normalHoursTotal ?>h</p>
+    <p>Total des heures supplémentaires : <?= extraHoursTotal ?>h</p>
+
+    <h2>Salaire brut :</h2>
+      <p>Montant des heures normales : <?= normalPay ?>€</p>
+      <p>Montant des heures supplémentaires : <?= extraPay ?>€</p>
+      <h2><strong>Total brut : <?= totalPay ?>€</strong></h2>
+
+        <h2>Avances sur salaire :</h2>
+        <p><?= advanceNoteWeek1 ?></p>
+        <p><?= advanceNoteWeek2 ?></p>
+
+      <h2><strong>Montant à payer : <?= finalPay ?>€</strong></h2>
+  </body>
+</html>

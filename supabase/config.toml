@@ -1,0 +1,2 @@
+[functions.jibble]
+verify_jwt = false
