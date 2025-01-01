@@ -3,7 +3,8 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS'
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+  'Content-Type': 'application/json'
 };
 
 serve(async (req) => {
@@ -16,6 +17,7 @@ serve(async (req) => {
     const { data: settings } = await fetch(
       `${Deno.env.get('SUPABASE_URL')}/rest/v1/settings?key=eq.jibble_config&select=value`,
       {
+        mode: 'no-cors',
         headers: {
           'apikey': Deno.env.get('SUPABASE_ANON_KEY') || '',
           'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`
@@ -37,6 +39,7 @@ serve(async (req) => {
     // Obtenir le token d'accès
     const tokenResponse = await fetch('https://identity.prod.jibble.io/connect/token', {
       method: 'POST',
+      mode: 'no-cors',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json'
@@ -67,8 +70,10 @@ serve(async (req) => {
 
     // Faire la requête à l'API Jibble
     const apiResponse = await fetch(apiUrl, {
+      mode: 'no-cors',
       headers: {
-        'Authorization': `Bearer ${access_token}`
+        'Authorization': `Bearer ${access_token}`,
+        'Accept': 'application/json'
       }
     });
 

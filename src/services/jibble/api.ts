@@ -10,8 +10,11 @@ async function fetchJibble<T>(endpoint: string, params = {}): Promise<T> {
   const { data, error } = await supabase.functions.invoke<T>('jibble-proxy', {
     body: {
       endpoint: endpoint.startsWith('/') ? endpoint : `/${endpoint}`,
-      params
-    }
+      params,
+    },
+    headers: {
+      'Content-Type': 'application/json'
+    },
   });
 
   if (error) {
