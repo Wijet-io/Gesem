@@ -39,12 +39,24 @@ async function fetchJibble<T>(endpoint: string, params = {}): Promise<T> {
 }
 
 export async function getEmployees(): Promise<JibblePerson[]> {
-  console.log('Getting employees...');
-  const response = await fetchJibble<JibbleResponse<JibblePerson>>('/People');
-  console.log('Got employees response:', response);
-  return response.value.filter(person => 
-    person.status === 'Joined' && person.role !== 'Owner'
-  );
+  console.log('Getting employees - starting request');
+  try {
+    const response = await fetchJibble<JibbleResponse<JibblePerson>>('/People');
+    
+    console.log('Got employees response:', response);
+
+    if (!response.value || !Array.isArray(response.value)) {
+      console.error('Unexpected response structure:', response);
+      throw new Error('Invalid response format from Jibble');
+    }
+
+    return response.value.filter((person: JibblePerson) => 
+      person.status === 'Joined' && person.role !== 'Owner'
+    );
+  } catch (error) {
+    console.error('getEmployees error:', error);
+    throw error;
+  }
 }
 
 export async function getAttendanceForPeriod(
@@ -53,16 +65,27 @@ export async function getAttendanceForPeriod(
   endDate: string
 ): Promise<TimesheetSummary[]> {
   console.log('Getting attendance for:', { employeeId, startDate, endDate });
-  const response = await fetchJibble<JibbleResponse<TimesheetSummary>>(
-    '/timesheets',
-    {
-      period: 'Custom',
-      date: startDate,
-      endDate: endDate,
-      personId: employeeId,
-      $filter: "total ne duration'PT0S'"
+  try {
+    const response = await fetchJibble<JibbleResponse<TimesheetSummary>>(
+      '/timesheets-summary',
+      {
+        period: 'Custom',
+        date: startDate,
+        endDate: endDate,
+        personId: employeeId,
+        $filter: "total ne duration'PT0S'"
+      }
+    );
+    
+    console.log('Got attendance response:', response);
+    
+    if (!response.value || !Array.isArray(response.value)) {
+      throw new Error('Invalid response format from Jibble');
     }
-  );
-  console.log('Got attendance response:', response);
-  return response.value;
+
+    return response.value;
+  } catch (error) {
+    console.error('getAttendanceForPeriod error:', error);
+    throw error;
+  }
 }
