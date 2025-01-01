@@ -8,61 +8,54 @@ const corsHeaders = {
 
 serve(async (req) => {
   console.log('Edge Function started');
-  console.log('Request method:', req.method);
-  console.log('Request headers:', Object.fromEntries(req.headers.entries()));
 
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    // Get token directly without requiring body
-    console.log('Fetching settings...');
+    console.log('Checking env variables:', {
+      hasAnonKey: !!Deno.env.get('SUPABASE_ANON_KEY')
+    });
+
+    // Essayons d'abord de récupérer toutes les entrées de la table settings
     const settingsResponse = await fetch(
-      'https://ctxhclytfrnpacrknprk.supabase.co/rest/v1/settings?key=eq.jibble_config',
+      'https://ctxhclytfrnpacrknprk.supabase.co/rest/v1/settings',
       {
         headers: {
           'apikey': Deno.env.get('SUPABASE_ANON_KEY') || '',
           'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
+          'Content-Type': 'application/json'
         }
       }
     );
 
     console.log('Settings response status:', settingsResponse.status);
-    const settings = await settingsResponse.json();
-    console.log('Settings data:', settings);
-
-    if (!settings || settings.length === 0) {
-      throw new Error('No Jibble config found');
-    }
-
-    const config = settings[0].value;
-    console.log('Got Jibble config, requesting token...');
-
-    // Get Jibble token
-    const tokenResponse = await fetch('https://identity.prod.jibble.io/connect/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        grant_type: 'client_credentials',
-        client_id: config.api_key,
-        client_secret: config.api_secret,
-      })
-    });
-
-    if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
-      throw new Error(`Jibble token error: ${tokenResponse.status} - ${errorText}`);
-    }
-
-    const tokenData = await tokenResponse.json();
-    console.log('Got Jibble token successfully');
     
-    return new Response(JSON.stringify(tokenData), {
+    // Log le texte brut de la réponse
+    const responseText = await settingsResponse.text();
+    console.log('Raw response:', responseText);
+
+    // Essayer de parser le JSON
+    const settings = responseText ? JSON.parse(responseText) : null;
+    console.log('Parsed settings:', settings);
+
+    // Log toutes les clés trouvées
+    if (settings && Array.isArray(settings)) {
+      console.log('Found settings keys:', settings.map(s => s.key));
+    }
+
+    const jibbleConfig = settings?.find(s => s.key === 'jibble_config');
+    console.log('Found Jibble config:', jibbleConfig);
+
+    if (!jibbleConfig) {
+      throw new Error('No Jibble config found in settings table');
+    }
+
+    return new Response(JSON.stringify({
+      message: 'Settings retrieved successfully',
+      config: jibbleConfig
+    }), {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json'
@@ -79,7 +72,10 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({
       error: error.message,
-      details: error.stack
+      details: {
+        stack: error.stack,
+        type: error.constructor.name
+      }
     }), {
       status: 500,
       headers: {
