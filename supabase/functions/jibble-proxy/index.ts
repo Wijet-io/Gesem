@@ -17,19 +17,26 @@ serve(async (req) => {
     const { data: settings } = await fetch(
       `${Deno.env.get('SUPABASE_URL')}/rest/v1/settings?key=eq.jibble_config&select=value`,
       {
+        method: 'GET',
         headers: {
           'apikey': Deno.env.get('SUPABASE_ANON_KEY') || '',
-          'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+          'Accept': 'application/json'
         }
       }
     ).then(r => r.json());
 
-    if (!settings?.[0]?.value) {
+    if (!Array.isArray(settings) || !settings[0]?.value) {
       throw new Error('Jibble configuration not found in settings table');
     }
 
     const config = settings[0].value;
-    console.log('Config loaded:', { ...config, api_secret: '[REDACTED]' });
+    
+    if (!config.api_key || !config.api_secret) {
+      throw new Error('Invalid Jibble configuration: missing api_key or api_secret');
+    }
+    
+    console.log('Config loaded successfully');
 
     // Récupérer les paramètres de la requête
     const { endpoint, params } = await req.json();
@@ -44,8 +51,8 @@ serve(async (req) => {
       },
       body: new URLSearchParams({
         grant_type: 'client_credentials',
-        client_id: config.apiKey || config.api_key,
-        client_secret: config.apiSecret || config.api_secret
+        client_id: config.api_key,
+        client_secret: config.api_secret
       })
     });
 
