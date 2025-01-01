@@ -1,5 +1,6 @@
 import { JibblePerson, JibbleResponse, TimesheetSummary } from './types';
 import { supabase } from '../../lib/supabase';
+import { JIBBLE_API } from './constants';
 
 interface JibbleApiRequest {
   endpoint: string;
@@ -41,7 +42,7 @@ async function fetchJibble<T>(endpoint: string, params = {}): Promise<T> {
 export async function getEmployees(): Promise<JibblePerson[]> {
   console.log('Getting employees - starting request');
   try {
-    const response = await fetchJibble<JibbleResponse<JibblePerson>>('/People');
+    const response = await fetchJibble<JibbleResponse<JibblePerson>>(JIBBLE_API.ENDPOINTS.PEOPLE);
     
     console.log('Got employees response:', response);
 
@@ -67,7 +68,7 @@ export async function getAttendanceForPeriod(
   console.log('Getting attendance for:', { employeeId, startDate, endDate });
   try {
     const response = await fetchJibble<JibbleResponse<TimesheetSummary>>(
-      '/timesheets-summary',
+      JIBBLE_API.ENDPOINTS.TIMESHEETS,
       {
         period: 'Custom',
         date: startDate,
