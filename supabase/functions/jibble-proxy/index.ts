@@ -3,8 +3,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-  'Content-Type': 'application/json'
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS'
 };
 
 serve(async (req) => {
@@ -13,97 +12,69 @@ serve(async (req) => {
   }
 
   try {
-    // Récupérer la configuration Jibble
-    const { data: settings } = await fetch(
-      `${Deno.env.get('SUPABASE_URL')}/rest/v1/settings?key=eq.jibble_config&select=value`,
+    // Log pour debug
+    console.log('Fetching Jibble config...');
+
+    const { data: settings, error } = await fetch(
+      'https://ctxhclytfrnpacrknprk.supabase.co/rest/v1/settings?select=*&key=eq.jibble_config',
       {
-        method: 'GET',
         headers: {
           'apikey': Deno.env.get('SUPABASE_ANON_KEY') || '',
           'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
-          'Accept': 'application/json'
+          'Content-Type': 'application/json'
         }
       }
     ).then(r => r.json());
 
-    if (!Array.isArray(settings) || !settings[0]?.value) {
-      throw new Error('Jibble configuration not found in settings table');
+    console.log('Settings response:', settings);
+
+    if (error) {
+      throw new Error(`Database error: ${error.message}`);
+    }
+
+    if (!settings || settings.length === 0) {
+      throw new Error('No Jibble config found');
     }
 
     const config = settings[0].value;
-    
-    if (!config.api_key || !config.api_secret) {
-      throw new Error('Invalid Jibble configuration: missing api_key or api_secret');
-    }
-    
-    console.log('Config loaded successfully');
+    console.log('Found config:', config);
 
-    // Récupérer les paramètres de la requête
-    const { endpoint, params } = await req.json();
-    console.log('Request params:', { endpoint, params });
+    // Construction de la requête vers Jibble
+    const formData = new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: config.api_key,
+      client_secret: config.api_secret,
+    });
 
-    // Obtenir le token d'accès
-    const tokenResponse = await fetch('https://identity.prod.jibble.io/connect/token', {
+    // Appel à l'API Jibble
+    const response = await fetch('https://identity.prod.jibble.io/connect/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept': 'application/json'
       },
-      body: new URLSearchParams({
-        grant_type: 'client_credentials',
-        client_id: config.api_key,
-        client_secret: config.api_secret
-      })
+      body: formData,
     });
 
-    if (!tokenResponse.ok) {
-      const error = await tokenResponse.text();
-      console.error('Token response error:', error);
-      throw new Error(`Jibble authentication failed: ${error}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Jibble API error: ${response.status} - ${errorText}`);
     }
 
-    const { access_token } = await tokenResponse.json();
-    console.log('Token obtained successfully');
+    const data = await response.json();
 
-    // Construire l'URL de l'API avec les paramètres
-    const apiUrl = new URL(`https://workspace.prod.jibble.io/v1${endpoint}`);
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        apiUrl.searchParams.append(key, value as string);
-      });
-    }
-
-    // Faire la requête à l'API Jibble
-    const apiResponse = await fetch(apiUrl, {
-      headers: {
-        'Authorization': `Bearer ${access_token}`,
-        'Accept': 'application/json'
-      }
-    });
-
-    if (!apiResponse.ok) {
-      const error = await apiResponse.text();
-      console.error('API response error:', error);
-      throw new Error(`Jibble API error (${apiResponse.status}): ${error}`);
-    }
-
-    const data = await apiResponse.json();
-    console.log('API response:', data);
-
+    // Retour du token
     return new Response(JSON.stringify(data), {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json'
       }
     });
+
   } catch (error) {
-    console.error('Erreur Jibble proxy:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    const errorDetails = error instanceof Error ? error.stack : '';
-    
+    console.error('Proxy error:', error);
     return new Response(JSON.stringify({ 
-      error: errorMessage,
-      details: errorDetails
+      error: error.message,
+      details: error.stack
     }), {
       status: 500,
       headers: {
