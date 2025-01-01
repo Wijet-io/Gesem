@@ -7,86 +7,70 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  console.log('Edge Function started');
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
 
   try {
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
-    console.log('Has anon key:', !!anonKey);
+    console.log('Edge Function started');
+    const { endpoint, params } = await req.json();
+    console.log('Request:', { endpoint, params });
 
-    // Test de connexion à Supabase avec plus de détails
-    const testUrl = 'https://ctxhclytfrnpacrknprk.supabase.co/rest/v1/settings';
-    console.log('Requesting URL:', testUrl);
+    // 1. Récupérer les credentials Jibble
+    const settingsResponse = await fetch(
+      'https://ctxhclytfrnpacrknprk.supabase.co/rest/v1/settings?key=eq.jibble_config',
+      {
+        headers: {
+          'apikey': Deno.env.get('SUPABASE_ANON_KEY') || '',
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
 
-    const testResponse = await fetch(testUrl, {
-      method: 'GET',
+    const settings = await settingsResponse.json();
+    const config = settings[0].value;
+
+    // 2. Obtenir le token Jibble
+    const tokenResponse = await fetch('https://identity.prod.jibble.io/connect/token', {
+      method: 'POST',
       headers: {
-        'apikey': anonKey || '',
-        'Authorization': `Bearer ${anonKey}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=representation'
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: config.api_key,
+        client_secret: config.api_secret,
+      })
+    });
+
+    const tokenData = await tokenResponse.json();
+    
+    // 3. Appeler l'API Jibble avec le token
+    const apiUrl = new URL(endpoint, 'https://workspace.prod.jibble.io/v1');
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        apiUrl.searchParams.append(key, String(value));
+      });
+    }
+
+    console.log('Calling Jibble API:', apiUrl.toString());
+    const apiResponse = await fetch(apiUrl.toString(), {
+      headers: {
+        'Authorization': `Bearer ${tokenData.access_token}`,
+        'Accept': 'application/json'
       }
     });
 
-    console.log('Response status:', testResponse.status);
-    console.log('Response headers:', Object.fromEntries(testResponse.headers));
-
-    const responseBody = await testResponse.text();
-    console.log('Response body:', responseBody);
-
-    // Si le status n'est pas 200, c'est probablement un problème de permissions
-    if (testResponse.status !== 200) {
-      return new Response(JSON.stringify({
-        error: 'Failed to access settings table',
-        status: testResponse.status,
-        body: responseBody,
-        message: 'This might be a permissions issue. Check the RLS policies for the settings table.'
-      }), {
-        status: 500,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
-      });
+    if (!apiResponse.ok) {
+      throw new Error(`Jibble API error: ${apiResponse.status}`);
     }
 
-    let settings;
-    try {
-      settings = JSON.parse(responseBody);
-      console.log('Parsed settings:', settings);
-    } catch (e) {
-      console.log('Failed to parse JSON:', e.message);
-      return new Response(JSON.stringify({
-        error: 'Failed to parse settings',
-        raw: responseBody
-      }), {
-        status: 500,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
-      });
-    }
+    const data = await apiResponse.json();
+    console.log('API response:', data);
 
-    const jibbleConfig = Array.isArray(settings) ? 
-      settings.find(s => s.key === 'jibble_config') : null;
-
-    if (!jibbleConfig) {
-      return new Response(JSON.stringify({
-        error: 'Jibble config not found',
-        availableSettings: settings
-      }), {
-        status: 404,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
-      });
-    }
-
-    return new Response(JSON.stringify({
-      message: 'Settings found',
-      config: jibbleConfig
-    }), {
+    // 4. Retourner les données
+    return new Response(JSON.stringify(data), {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json'
@@ -94,18 +78,10 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Detailed error:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name
-    });
-
+    console.error('Error:', error);
     return new Response(JSON.stringify({
       error: error.message,
-      details: {
-        stack: error.stack,
-        name: error.name
-      }
+      details: error.stack
     }), {
       status: 500,
       headers: {
