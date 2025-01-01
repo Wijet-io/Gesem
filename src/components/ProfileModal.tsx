@@ -51,7 +51,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     e.preventDefault();
     
     // Update profile if name changed
-    if (formData.firstName !== user?.first_name || formData.lastName !== user?.last_name) {
+    if (formData.firstName !== user?.firstName || formData.lastName !== user?.lastName) {
       await updateProfileMutation.mutateAsync({
         firstName: formData.firstName,
         lastName: formData.lastName

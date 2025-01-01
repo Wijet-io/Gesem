@@ -11,9 +11,27 @@ import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import toast from 'react-hot-toast';
 
+interface User {
+  id: string;
+  email: string;
+  role: UserRole;
+  firstName: string;
+  lastName: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface FormData {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  role: UserRole;
+}
+
 export default function Users() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     email: '',
     password: '',
     firstName: '',
@@ -23,13 +41,13 @@ export default function Users() {
 
   const queryClient = useQueryClient();
 
-  const { data: users, isLoading } = useQuery({
+  const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ['users'],
     queryFn: listUsers
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: typeof formData) => 
+    mutationFn: (data: FormData) => 
       createUser(data.email, data.password, data.role, data.firstName, data.lastName),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -56,7 +74,7 @@ export default function Users() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: deleteUser,
+    mutationFn: (id: string) => deleteUser(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       toast.success('Utilisateur supprimé avec succès');
@@ -80,12 +98,15 @@ export default function Users() {
   const columns = [
     { 
       header: 'Nom',
-      accessor: row => `${row.firstName} ${row.lastName}`
+      accessor: (row: User) => `${row.firstName} ${row.lastName}`
     },
-    { header: 'Email', accessor: 'email' },
+    { 
+      header: 'Email', 
+      accessor: (row: User) => row.email
+    },
     {
       header: 'Rôle',
-      accessor: row => (
+      accessor: (row: User) => (
         <Select
           value={row.role}
           options={roleOptions}
@@ -98,7 +119,7 @@ export default function Users() {
     },
     {
       header: 'Actions',
-      accessor: row => (
+      accessor: (row: User) => (
         <Button
           variant="danger"
           size="sm"
@@ -129,7 +150,7 @@ export default function Users() {
         {isLoading ? (
           <div className="text-center py-4">Chargement...</div>
         ) : (
-          <Table
+          <Table<User>
             columns={columns}
             data={users || []}
           />
