@@ -8,15 +8,25 @@ const corsHeaders = {
 
 serve(async (req) => {
   console.log('Edge Function started');
+  console.log('Request method:', req.method);
+  console.log('Request headers:', Object.fromEntries(req.headers.entries()));
 
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    console.log('Parsing request body...');
-    const { endpoint, params } = await req.json();
-    console.log('Request details:', { endpoint, params });
+    // Log the request body before parsing
+    const bodyText = await req.text();
+    console.log('Raw request body:', bodyText);
+
+    // Parse the body only if it's not empty
+    if (!bodyText) {
+      throw new Error('Request body is empty');
+    }
+
+    const { endpoint, params } = JSON.parse(bodyText);
+    console.log('Parsed request:', { endpoint, params });
 
     console.log('Fetching settings...');
     const settingsResponse = await fetch(
@@ -71,6 +81,7 @@ serve(async (req) => {
       });
     }
 
+    console.log('Calling Jibble API at:', apiUrl.toString());
     const apiResponse = await fetch(apiUrl.toString(), {
       headers: {
         'Authorization': `Bearer ${tokenData.access_token}`,
@@ -94,13 +105,13 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Detailed error:', {
+    console.error('Error details:', {
       message: error.message,
+      name: error.name,
       stack: error.stack,
-      status: error.status,
-      statusText: error.statusText
+      type: error.constructor.name
     });
-    
+
     return new Response(JSON.stringify({
       error: error.message,
       details: error.stack
