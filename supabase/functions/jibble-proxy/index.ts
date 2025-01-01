@@ -14,22 +14,25 @@ serve(async (req) => {
   try {
     // Récupérer la configuration Jibble
     const { data: settings } = await fetch(
-      'https://ctxhclytfrnpacrknprk.supabase.co/rest/v1/settings?key=eq.jibble_config&select=value',
+      `${Deno.env.get('SUPABASE_URL')}/rest/v1/settings?key=eq.jibble_config&select=value`,
       {
         headers: {
           'apikey': Deno.env.get('SUPABASE_ANON_KEY') || '',
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`
         }
       }
     ).then(r => r.json());
 
     if (!settings?.[0]?.value) {
-      throw new Error('Configuration Jibble introuvable');
+      throw new Error('Jibble configuration not found in settings table');
     }
 
     const config = settings[0].value;
+    console.log('Config loaded:', { ...config, api_secret: '[REDACTED]' });
 
     // Récupérer les paramètres de la requête
     const { endpoint, params } = await req.json();
+    console.log('Request params:', { endpoint, params });
 
     // Obtenir le token d'accès
     const tokenResponse = await fetch('https://identity.prod.jibble.io/connect/token', {
@@ -46,10 +49,13 @@ serve(async (req) => {
     });
 
     if (!tokenResponse.ok) {
-      throw new Error('Échec de l\'authentification Jibble');
+      const error = await tokenResponse.text();
+      console.error('Token response error:', error);
+      throw new Error(`Jibble authentication failed: ${error}`);
     }
 
     const { access_token } = await tokenResponse.json();
+    console.log('Token obtained successfully');
 
     // Construire l'URL de l'API avec les paramètres
     const apiUrl = new URL(`https://workspace.prod.jibble.io/v1${endpoint}`);
@@ -62,16 +68,18 @@ serve(async (req) => {
     // Faire la requête à l'API Jibble
     const apiResponse = await fetch(apiUrl, {
       headers: {
-        'Authorization': `Bearer ${access_token}`,
-        'Accept': 'application/json'
+        'Authorization': `Bearer ${access_token}`
       }
     });
 
     if (!apiResponse.ok) {
-      throw new Error(`Erreur API Jibble: ${apiResponse.status}`);
+      const error = await apiResponse.text();
+      console.error('API response error:', error);
+      throw new Error(`Jibble API error (${apiResponse.status}): ${error}`);
     }
 
     const data = await apiResponse.json();
+    console.log('API response:', data);
 
     return new Response(JSON.stringify(data), {
       headers: {
@@ -81,7 +89,13 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Erreur Jibble proxy:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorDetails = error instanceof Error ? error.stack : '';
+    
+    return new Response(JSON.stringify({ 
+      error: errorMessage,
+      details: errorDetails
+    }), {
       status: 500,
       headers: {
         ...corsHeaders,
