@@ -3,13 +3,11 @@ import { getJibbleToken } from '../services/jibble/auth';
 
 interface JibbleState {
   token: string | null;
-  expiresAt: number | null;
   getToken: () => Promise<string>;
 }
 
 export const useJibbleStore = create<JibbleState>((set) => ({
   token: null,
-  expiresAt: null,
 
   getToken: async () => {
     try {

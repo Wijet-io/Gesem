@@ -1,0 +1,101 @@
+.
+├── .env
+├── .gitignore
+├── arbo.txt
+├── env.d.ts
+├── index.html
+├── package-lock.json
+├── package.json
+├── postcss.config.js
+├── reportPDF.html
+├── src
+│   ├── App.tsx
+│   ├── archive
+│   │   ├── acomptes.js
+│   │   ├── attendanceImportService.js
+│   │   ├── attendanceReport.js
+│   │   ├── authService.js
+│   │   ├── findemission.js
+│   │   ├── jibbleDataService.js
+│   │   ├── paymentReport.js
+│   │   ├── pointageService.js
+│   │   ├── timeTrackingService.js
+│   │   └── updateEmployeeService.js
+│   ├── components
+│   │   ├── AuthGuard.tsx
+│   │   ├── ImportModal.tsx
+│   │   ├── Layout.tsx
+│   │   ├── Navigation.tsx
+│   │   ├── ProfileModal.tsx
+│   │   ├── RoleGuard.tsx
+│   │   └── ui
+│   │       ├── Badge.tsx
+│   │       ├── Button.tsx
+│   │       ├── Card.tsx
+│   │       ├── Input.tsx
+│   │       ├── Modal.tsx
+│   │       ├── PageHeader.tsx
+│   │       ├── ProgressBar.tsx
+│   │       ├── Select.tsx
+│   │       └── Table.tsx
+│   ├── hooks
+│   │   └── useAttendanceImport.ts
+│   ├── index.css
+│   ├── lib
+│   │   └── supabase.ts
+│   ├── main.tsx
+│   ├── pages
+│   │   ├── Advances.tsx
+│   │   ├── Attendance.tsx
+│   │   ├── Employees.tsx
+│   │   ├── Login.tsx
+│   │   ├── PayrollGeneration.tsx
+│   │   └── Users.tsx
+│   ├── providers
+│   │   └── QueryProvider.tsx
+│   ├── services
+│   │   ├── advance
+│   │   │   └── advanceService.ts
+│   │   ├── attendance
+│   │   │   ├── attendanceService.ts
+│   │   │   └── importService.ts
+│   │   ├── auth
+│   │   │   ├── adminService.ts
+│   │   │   ├── authService.ts
+│   │   │   └── profileService.ts
+│   │   ├── employee
+│   │   │   ├── employeeService.ts
+│   │   │   └── syncService.ts
+│   │   └── jibble
+│   │       ├── api.ts
+│   │       ├── auth.ts
+│   │       ├── constants.ts
+│   │       ├── index.ts
+│   │       └── types.ts
+│   ├── stores
+│   │   ├── authStore.ts
+│   │   └── jibbleStore.ts
+│   ├── types
+│   │   ├── advance.ts
+│   │   ├── attendance.ts
+│   │   ├── employee.ts
+│   │   └── user.ts
+│   └── utils
+│       ├── date.ts
+│       ├── hours.ts
+│       └── money.ts
+├── supabase
+│   ├── functions
+│   │   └── jibble-proxy
+│   │       └── index.ts
+│   └── migrations
+│       ├── 20241230220644_amber_bush.sql
+│       ├── 20241230225232_weathered_spire.sql
+│       ├── 20241230230436_dawn_sound.sql
+│       ├── 20241230230528_young_cliff.sql
+│       ├── 20241230231746_raspy_truth.sql
+│       ├── 20241230233802_violet_forest.sql
+│       ├── 20241230234507_lingering_hat.sql
+│       └── 20241231222718_foggy_tower.sql
+├── tailwind.config.js
+└── tree.mjs

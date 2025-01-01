@@ -1,16 +1,16 @@
 import { supabase } from '../../lib/supabase';
 import { getEmployees as getJibbleEmployees } from '../jibble/api';
-import type { Employee } from '../../types/employee';
 
 export async function syncEmployeesFromJibble() {
   try {
     const jibbleEmployees = await getJibbleEmployees();
+    
     if (!Array.isArray(jibbleEmployees) || !jibbleEmployees.length) {
       throw new Error('No employees received from Jibble');
     }
 
     let syncedCount = 0;
-    const errors = [];
+    const errors: string[] = [];
 
     for (const jibbleEmployee of jibbleEmployees) {
       const [firstName, ...lastNameParts] = jibbleEmployee.fullName.split(' ');
@@ -23,7 +23,6 @@ export async function syncEmployeesFromJibble() {
           .eq('id', jibbleEmployee.id)
           .single();
 
-        // PGRST116 means no rows returned, which is fine for new employees
         const isNewEmployee = selectError?.code === 'PGRST116';
 
         if (isNewEmployee) {
@@ -57,7 +56,7 @@ export async function syncEmployeesFromJibble() {
           }
         }
         syncedCount++;
-      } catch (error) {
+      } catch (error: any) {
         errors.push(`Error processing employee ${jibbleEmployee.fullName}: ${error.message}`);
         continue;
       }
@@ -67,7 +66,7 @@ export async function syncEmployeesFromJibble() {
       console.error('Sync completed with errors:', errors);
     }
     return syncedCount;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Sync failed:', error);
     throw new Error(error.message || 'Failed to synchronize employees');
   }

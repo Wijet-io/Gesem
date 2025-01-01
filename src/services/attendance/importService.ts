@@ -42,7 +42,7 @@ export class AttendanceImporter {
       );
 
       const records = await Promise.all(
-        timesheets.value.map(async (timesheet) => {
+        timesheets.map(async (timesheet) => {
           const daily = timesheet.daily[0];
           const totalHours = parseHours(daily.payrollHours);
 
@@ -66,7 +66,7 @@ export class AttendanceImporter {
             .single();
 
           if (error) throw error;
-          return data;
+          return data as AttendanceRecord;
         })
       );
       
@@ -81,29 +81,30 @@ export class AttendanceImporter {
     startDate: string,
     endDate: string,
     employeeIds?: string[]
-  ) {
+  ): Promise<AttendanceRecord[]> {
     try {
       this.updateProgress({ status: 'processing', current: 0 });
 
-      // Fetch employees
-      const { data: employees } = await supabase
+      const { data: employees, error } = await supabase
         .from('employees')
         .select('*')
         .in('id', employeeIds || [])
         .order('last_name');
 
+      if (error) throw error;
       if (!employees?.length) {
         throw new Error('No employees found');
       }
 
       this.updateProgress({ total: employees.length });
 
-      // Import for each employee
-      const results = [];
+      const results: AttendanceRecord[] = [];
       for (const employee of employees) {
         try {
           const records = await this.importForEmployee(employee, startDate, endDate);
-          results.push(...records);
+          if (records) {
+            results.push(...records);
+          }
           
           this.updateProgress({
             current: this.progress.current + 1,
@@ -124,7 +125,7 @@ export class AttendanceImporter {
     } catch (error) {
       this.updateProgress({
         status: 'error',
-        message: error.message
+        message: error instanceof Error ? error.message : 'Unknown error'
       });
       throw error;
     }
