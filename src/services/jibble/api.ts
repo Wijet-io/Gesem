@@ -9,14 +9,14 @@ interface JibbleApiRequest {
 async function fetchJibble<T>(endpoint: string, params = {}): Promise<T> {
   const { data, error } = await supabase.functions.invoke<T>('jibble-proxy', {
     body: {
-      endpoint,
+      endpoint: endpoint.startsWith('/') ? endpoint : `/${endpoint}`,
       params
     }
   });
 
   if (error) {
     console.error('Jibble API error:', error);
-    throw error;
+    throw new Error(error.message || 'Failed to fetch from Jibble API');
   }
 
   if (!data) {
@@ -27,7 +27,7 @@ async function fetchJibble<T>(endpoint: string, params = {}): Promise<T> {
 }
 
 export async function getEmployees(): Promise<JibblePerson[]> {
-  const response = await fetchJibble<JibbleResponse<JibblePerson>>('/people');
+  const response = await fetchJibble<JibbleResponse<JibblePerson>>('/People');
   return response.value.filter(person => 
     person.status === 'Joined' && person.role !== 'Owner'
   );

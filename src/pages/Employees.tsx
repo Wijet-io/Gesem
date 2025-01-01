@@ -18,11 +18,14 @@ export default function Employees() {
 
   const handleJibbleSync = async () => {
     try {
+      toast.loading('Synchronisation en cours...');
       const count = await syncEmployeesFromJibble();
+      toast.dismiss();
       toast.success(`${count} employés synchronisés depuis Jibble`);
       refetch();
     } catch (error) {
       console.error('Sync failed:', error);
+      toast.dismiss();
       toast.error('Erreur lors de la synchronisation avec Jibble');
     }
   };
