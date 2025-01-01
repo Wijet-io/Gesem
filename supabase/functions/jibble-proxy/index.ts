@@ -7,15 +7,19 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log('Edge Function started');
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    console.log('Starting function...');
+    console.log('Parsing request body...');
+    const { endpoint, params } = await req.json();
+    console.log('Request details:', { endpoint, params });
 
-    // Test simple SQL query
-    const response = await fetch(
+    console.log('Fetching settings...');
+    const settingsResponse = await fetch(
       'https://ctxhclytfrnpacrknprk.supabase.co/rest/v1/settings?key=eq.jibble_config',
       {
         headers: {
@@ -27,19 +31,19 @@ serve(async (req) => {
       }
     );
 
-    console.log('Response status:', response.status);
-    const settings = await response.json();
-    console.log('Settings:', settings);
+    console.log('Settings response status:', settingsResponse.status);
+    const settings = await settingsResponse.json();
+    console.log('Settings data:', settings);
 
     if (!settings || settings.length === 0) {
       throw new Error('No Jibble config found');
     }
 
     const config = settings[0].value;
-    console.log('Config:', config);
+    console.log('Got Jibble config, requesting token...');
 
-    // Jibble auth request
-    const jibbleResponse = await fetch('https://identity.prod.jibble.io/connect/token', {
+    // Get Jibble token first
+    const tokenResponse = await fetch('https://identity.prod.jibble.io/connect/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -51,12 +55,36 @@ serve(async (req) => {
       })
     });
 
-    if (!jibbleResponse.ok) {
-      const errorText = await jibbleResponse.text();
-      throw new Error(`Jibble API error: ${jibbleResponse.status} - ${errorText}`);
+    if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text();
+      throw new Error(`Jibble token error: ${tokenResponse.status} - ${errorText}`);
     }
 
-    const data = await jibbleResponse.json();
+    const tokenData = await tokenResponse.json();
+    console.log('Got Jibble token, calling API...');
+
+    // Now call the actual Jibble API
+    const apiUrl = new URL(endpoint, 'https://workspace.prod.jibble.io/v1');
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        apiUrl.searchParams.append(key, String(value));
+      });
+    }
+
+    const apiResponse = await fetch(apiUrl.toString(), {
+      headers: {
+        'Authorization': `Bearer ${tokenData.access_token}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!apiResponse.ok) {
+      const errorText = await apiResponse.text();
+      throw new Error(`Jibble API error: ${apiResponse.status} - ${errorText}`);
+    }
+
+    const data = await apiResponse.json();
+    console.log('API call successful');
     
     return new Response(JSON.stringify(data), {
       headers: {
@@ -66,7 +94,13 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Function error:', error);
+    console.error('Detailed error:', {
+      message: error.message,
+      stack: error.stack,
+      status: error.status,
+      statusText: error.statusText
+    });
+    
     return new Response(JSON.stringify({
       error: error.message,
       details: error.stack
