@@ -17,7 +17,6 @@ serve(async (req) => {
     const { data: settings } = await fetch(
       `${Deno.env.get('SUPABASE_URL')}/rest/v1/settings?key=eq.jibble_config&select=value`,
       {
-        mode: 'no-cors',
         headers: {
           'apikey': Deno.env.get('SUPABASE_ANON_KEY') || '',
           'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`
@@ -39,15 +38,14 @@ serve(async (req) => {
     // Obtenir le token d'accès
     const tokenResponse = await fetch('https://identity.prod.jibble.io/connect/token', {
       method: 'POST',
-      mode: 'no-cors',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json'
       },
       body: new URLSearchParams({
         grant_type: 'client_credentials',
-        client_id: config.api_key,
-        client_secret: config.api_secret
+        client_id: config.apiKey || config.api_key,
+        client_secret: config.apiSecret || config.api_secret
       })
     });
 
@@ -70,7 +68,6 @@ serve(async (req) => {
 
     // Faire la requête à l'API Jibble
     const apiResponse = await fetch(apiUrl, {
-      mode: 'no-cors',
       headers: {
         'Authorization': `Bearer ${access_token}`,
         'Accept': 'application/json'
