@@ -7,12 +7,12 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Gérer les requêtes OPTIONS pour CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
+    // Récupérer la configuration Jibble
     const { data: settings } = await fetch(
       'https://ctxhclytfrnpacrknprk.supabase.co/rest/v1/settings?key=eq.jibble_config&select=value',
       {
@@ -22,24 +22,56 @@ serve(async (req) => {
       }
     ).then(r => r.json());
 
+    if (!settings?.[0]?.value) {
+      throw new Error('Configuration Jibble introuvable');
+    }
+
     const config = settings[0].value;
 
-    // Construction de la requête vers Jibble
-    const formData = new URLSearchParams({
-      grant_type: 'client_credentials',
-      client_id: config.api_key,
-      client_secret: config.api_secret,
-    });
+    // Récupérer les paramètres de la requête
+    const { endpoint, params } = await req.json();
 
-    const response = await fetch('https://identity.prod.jibble.io/connect/token', {
+    // Obtenir le token d'accès
+    const tokenResponse = await fetch('https://identity.prod.jibble.io/connect/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
       },
-      body: formData,
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: config.api_key,
+        client_secret: config.api_secret
+      })
     });
 
-    const data = await response.json();
+    if (!tokenResponse.ok) {
+      throw new Error('Échec de l\'authentification Jibble');
+    }
+
+    const { access_token } = await tokenResponse.json();
+
+    // Construire l'URL de l'API avec les paramètres
+    const apiUrl = new URL(`https://workspace.prod.jibble.io/v1${endpoint}`);
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        apiUrl.searchParams.append(key, value as string);
+      });
+    }
+
+    // Faire la requête à l'API Jibble
+    const apiResponse = await fetch(apiUrl, {
+      headers: {
+        'Authorization': `Bearer ${access_token}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!apiResponse.ok) {
+      throw new Error(`Erreur API Jibble: ${apiResponse.status}`);
+    }
+
+    const data = await apiResponse.json();
 
     return new Response(JSON.stringify(data), {
       headers: {
@@ -48,6 +80,7 @@ serve(async (req) => {
       }
     });
   } catch (error) {
+    console.error('Erreur Jibble proxy:', error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: {
