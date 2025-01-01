@@ -16,18 +16,7 @@ serve(async (req) => {
   }
 
   try {
-    // Log the request body before parsing
-    const bodyText = await req.text();
-    console.log('Raw request body:', bodyText);
-
-    // Parse the body only if it's not empty
-    if (!bodyText) {
-      throw new Error('Request body is empty');
-    }
-
-    const { endpoint, params } = JSON.parse(bodyText);
-    console.log('Parsed request:', { endpoint, params });
-
+    // Get token directly without requiring body
     console.log('Fetching settings...');
     const settingsResponse = await fetch(
       'https://ctxhclytfrnpacrknprk.supabase.co/rest/v1/settings?key=eq.jibble_config',
@@ -52,7 +41,7 @@ serve(async (req) => {
     const config = settings[0].value;
     console.log('Got Jibble config, requesting token...');
 
-    // Get Jibble token first
+    // Get Jibble token
     const tokenResponse = await fetch('https://identity.prod.jibble.io/connect/token', {
       method: 'POST',
       headers: {
@@ -71,33 +60,9 @@ serve(async (req) => {
     }
 
     const tokenData = await tokenResponse.json();
-    console.log('Got Jibble token, calling API...');
-
-    // Now call the actual Jibble API
-    const apiUrl = new URL(endpoint, 'https://workspace.prod.jibble.io/v1');
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        apiUrl.searchParams.append(key, String(value));
-      });
-    }
-
-    console.log('Calling Jibble API at:', apiUrl.toString());
-    const apiResponse = await fetch(apiUrl.toString(), {
-      headers: {
-        'Authorization': `Bearer ${tokenData.access_token}`,
-        'Accept': 'application/json'
-      }
-    });
-
-    if (!apiResponse.ok) {
-      const errorText = await apiResponse.text();
-      throw new Error(`Jibble API error: ${apiResponse.status} - ${errorText}`);
-    }
-
-    const data = await apiResponse.json();
-    console.log('API call successful');
+    console.log('Got Jibble token successfully');
     
-    return new Response(JSON.stringify(data), {
+    return new Response(JSON.stringify(tokenData), {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json'
