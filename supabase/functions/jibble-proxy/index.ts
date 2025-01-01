@@ -10,39 +10,36 @@ serve(async (req) => {
   console.log('Edge Function started');
 
   try {
-    // Test de connexion à Supabase
-    const testResponse = await fetch(
-      'https://ctxhclytfrnpacrknprk.supabase.co/rest/v1/settings',
-      {
-        method: 'GET',
-        headers: {
-          'apikey': Deno.env.get('SUPABASE_ANON_KEY') || '',
-          'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
-          'Content-Type': 'application/json'
-        }
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    console.log('Has anon key:', !!anonKey);
+
+    // Test de connexion à Supabase avec plus de détails
+    const testUrl = 'https://ctxhclytfrnpacrknprk.supabase.co/rest/v1/settings';
+    console.log('Requesting URL:', testUrl);
+
+    const testResponse = await fetch(testUrl, {
+      method: 'GET',
+      headers: {
+        'apikey': anonKey || '',
+        'Authorization': `Bearer ${anonKey}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
       }
-    );
+    });
 
-    console.log('Test response status:', testResponse.status);
-    console.log('Test response headers:', Object.fromEntries(testResponse.headers));
-    
-    const responseText = await testResponse.text();
-    console.log('Raw response text:', responseText);
+    console.log('Response status:', testResponse.status);
+    console.log('Response headers:', Object.fromEntries(testResponse.headers));
 
-    let responseData;
-    try {
-      responseData = JSON.parse(responseText);
-      console.log('Parsed response:', responseData);
-    } catch (e) {
-      console.log('Failed to parse JSON:', e.message);
-    }
+    const responseBody = await testResponse.text();
+    console.log('Response body:', responseBody);
 
-    // Si on n'a pas de données, retourner une erreur explicite
-    if (!responseData || !Array.isArray(responseData) || responseData.length === 0) {
+    // Si le status n'est pas 200, c'est probablement un problème de permissions
+    if (testResponse.status !== 200) {
       return new Response(JSON.stringify({
-        error: 'No settings found',
-        responseStatus: testResponse.status,
-        rawResponse: responseText
+        error: 'Failed to access settings table',
+        status: testResponse.status,
+        body: responseBody,
+        message: 'This might be a permissions issue. Check the RLS policies for the settings table.'
       }), {
         status: 500,
         headers: {
@@ -52,10 +49,43 @@ serve(async (req) => {
       });
     }
 
-    // Retourner les données trouvées pour debug
+    let settings;
+    try {
+      settings = JSON.parse(responseBody);
+      console.log('Parsed settings:', settings);
+    } catch (e) {
+      console.log('Failed to parse JSON:', e.message);
+      return new Response(JSON.stringify({
+        error: 'Failed to parse settings',
+        raw: responseBody
+      }), {
+        status: 500,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
+      });
+    }
+
+    const jibbleConfig = Array.isArray(settings) ? 
+      settings.find(s => s.key === 'jibble_config') : null;
+
+    if (!jibbleConfig) {
+      return new Response(JSON.stringify({
+        error: 'Jibble config not found',
+        availableSettings: settings
+      }), {
+        status: 404,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
+      });
+    }
+
     return new Response(JSON.stringify({
       message: 'Settings found',
-      data: responseData
+      config: jibbleConfig
     }), {
       headers: {
         ...corsHeaders,
