@@ -6,12 +6,12 @@ import PageHeader from '../components/ui/PageHeader';
 import Table from '../components/ui/Table';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
-import EmployeeEditModal from '../components/EmployeeEditModal';
+import EditableCell from '../components/EditableCell';
 import type { Employee } from '../types/employee';
+import { updateEmployee } from '../services/employee/employeeService';
 import toast from 'react-hot-toast';
 
 export default function Employees() {
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const { data: employees = [], isLoading, refetch } = useQuery({
     queryKey: ['employees'],
     queryFn: getEmployees
@@ -44,41 +44,45 @@ export default function Employees() {
     {
       header: 'Taux Horaire Normal',
       accessor: (row: Employee) => (
-        <div className="text-right">
-          {row.normalRate ? `${row.normalRate.toFixed(2)} €` : '-'}
-        </div>
+        <EditableCell
+          value={row.normalRate}
+          suffix=" €"
+          onSave={async (value) => {
+            await updateEmployee(row.id, { normal_rate: value });
+            refetch();
+            toast.success('Taux horaire normal mis à jour');
+          }}
+        />
       )
     },
     {
       header: 'Taux Horaire Supp.',
       accessor: (row: Employee) => (
-        <div className="text-right">
-          {row.extraRate ? `${row.extraRate.toFixed(2)} €` : '-'}
-        </div>
+        <EditableCell
+          value={row.extraRate}
+          suffix=" €"
+          onSave={async (value) => {
+            await updateEmployee(row.id, { extra_rate: value });
+            refetch();
+            toast.success('Taux horaire supplémentaire mis à jour');
+          }}
+        />
       )
     },
     {
       header: 'Heures Min.',
       accessor: (row: Employee) => (
-        <div className="text-right">
-          {row.minHours}h
-        </div>
-      )
-    },
-    {
-      header: 'Actions',
-      accessor: (row: Employee) => (
-        <div className="flex justify-end space-x-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => {
-              setSelectedEmployee(row);
-            }}
-          >
-            Modifier
-          </Button>
-        </div>
+        <EditableCell
+          value={row.minHours}
+          suffix="h"
+          step="0.5"
+          max={12}
+          onSave={async (value) => {
+            await updateEmployee(row.id, { min_hours: value });
+            refetch();
+            toast.success('Heures contractuelles mises à jour');
+          }}
+        />
       )
     }
   ];
@@ -109,13 +113,6 @@ export default function Employees() {
             data={employees} 
           />
         )}
-        
-        <EmployeeEditModal
-          employee={selectedEmployee}
-          isOpen={!!selectedEmployee}
-          onClose={() => setSelectedEmployee(null)}
-          onSuccess={refetch}
-        />
       </Card>
     </div>
   );
