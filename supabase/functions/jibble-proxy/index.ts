@@ -13,101 +13,80 @@ serve(async (req) => {
   }
 
   try {
-    // Client Supabase avec service role
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Récupérer les employés de Jibble via la fonction existante
-    const jibbleResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/jibble-proxy`, {
+    // Récupérer la configuration Jibble
+    const { data: settingsData, error: settingsError } = await supabaseAdmin
+      .from('settings')
+      .select('value')
+      .eq('key', 'jibble_config')
+      .single();
+
+    if (settingsError || !settingsData) {
+      throw new Error('Failed to get Jibble configuration');
+    }
+
+    const jibbleConfig = settingsData.value;
+
+    // Obtenir le token Jibble
+    const tokenResponse = await fetch('https://identity.prod.jibble.io/connect/token', {
+      method: 'POST',
       headers: {
-        Authorization: `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: jibbleConfig.api_key,
+        client_secret: jibbleConfig.api_secret,
+      }),
+    });
+
+    if (!tokenResponse.ok) {
+      throw new Error('Failed to get Jibble token');
+    }
+
+    const { access_token } = await tokenResponse.json();
+
+    // Récupérer le body de la requête s'il existe
+    let requestBody;
+    if (req.body) {
+      requestBody = await req.json();
+    }
+
+    // Construire l'URL de l'API Jibble
+    let url = 'https://workspace.prod.jibble.io/v1/People';
+    if (requestBody?.endpoint) {
+      url = `https://workspace.prod.jibble.io/v1${requestBody.endpoint}`;
+    }
+
+    // Ajouter les paramètres de requête s'ils existent
+    if (requestBody?.params) {
+      const searchParams = new URLSearchParams(requestBody.params);
+      url += `?${searchParams.toString()}`;
+    }
+
+    // Faire la requête à l'API Jibble
+    const jibbleResponse = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${access_token}`,
+        'Accept': 'application/json',
       },
     });
 
     if (!jibbleResponse.ok) {
-      const errorText = await jibbleResponse.text();
-      throw new Error(`Failed to fetch employees from Jibble: ${errorText}`);
+      throw new Error(`Jibble API error: ${jibbleResponse.statusText}`);
     }
 
-    const jibbleData = await jibbleResponse.json();
-    const jibbleEmployees = jibbleData.value;
-    
-    if (!Array.isArray(jibbleEmployees) || !jibbleEmployees.length) {
-      throw new Error('No employees received from Jibble');
-    }
-
-    let syncedCount = 0;
-    const errors = [];
-    
-    // Créer un Set des IDs des employés actifs de Jibble
-    const activeEmployeeIds = new Set(jibbleEmployees.map(emp => emp.id));
-
-    // 1. Supprimer les employés qui ne sont plus dans Jibble
-    const { error: deleteError } = await supabaseAdmin
-      .from('employees')
-      .delete()
-      .not('id', 'in', `(${Array.from(activeEmployeeIds).map(id => `'${id}'`).join(',')})`);
-
-    if (deleteError) {
-      errors.push(`Failed to remove inactive employees: ${deleteError.message}`);
-    }
-
-    // 2. Mettre à jour ou créer les employés
-    for (const jibbleEmployee of jibbleEmployees) {
-      const [firstName, ...lastNameParts] = jibbleEmployee.fullName.split(' ');
-      const lastName = lastNameParts.join(' ');
-
-      try {
-        const { data: existingEmployee } = await supabaseAdmin
-          .from('employees')
-          .select('*')
-          .eq('id', jibbleEmployee.id)
-          .maybeSingle();
-
-        if (!existingEmployee) {
-          const { error: insertError } = await supabaseAdmin
-            .from('employees')
-            .insert({
-              id: jibbleEmployee.id,
-              first_name: firstName,
-              last_name: lastName,
-              normal_rate: 0,
-              extra_rate: 0,
-              min_hours: 8
-            });
-
-          if (insertError) {
-            errors.push(`Failed to insert employee ${jibbleEmployee.fullName}: ${insertError.message}`);
-            continue;
-          }
-        } else {
-          const { error: updateError } = await supabaseAdmin
-            .from('employees')
-            .update({
-              first_name: firstName,
-              last_name: lastName
-            })
-            .eq('id', jibbleEmployee.id);
-
-          if (updateError) {
-            errors.push(`Failed to update employee ${jibbleEmployee.fullName}: ${updateError.message}`);
-            continue;
-          }
-        }
-        syncedCount++;
-      } catch (error) {
-        errors.push(`Error processing employee ${jibbleEmployee.fullName}: ${error.message}`);
-      }
-    }
+    const data = await jibbleResponse.json();
 
     return new Response(
-      JSON.stringify({ syncedCount, errors }),
+      JSON.stringify(data),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: errors.length > 0 ? 207 : 200
+        status: 200
       }
     );
 
