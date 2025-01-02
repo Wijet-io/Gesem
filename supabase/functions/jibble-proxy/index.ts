@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.2';
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 
 const corsHeaders = {
@@ -10,7 +10,13 @@ const corsHeaders = {
 // Client Supabase avec service role
 const supabaseAdmin = createClient(
   Deno.env.get('SUPABASE_URL') || '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '',
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
 );
 
 serve(async (req) => {
