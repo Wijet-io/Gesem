@@ -10,14 +10,20 @@ const corsHeaders = {
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { 
+      status: 200,
+      headers: corsHeaders 
+    });
   }
 
   try {
-    // Vérifier l'authentification
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Missing authorization header');
+    // Vérifier l'authentification JWT
+    const jwt = req.headers.get('Authorization')?.split('Bearer ')[1];
+    if (!jwt) {
+      return new Response(
+        JSON.stringify({ error: 'No JWT provided' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Client Supabase avec service role

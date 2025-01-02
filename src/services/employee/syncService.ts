@@ -1,27 +1,18 @@
 import { supabase } from '../../lib/supabase';
 
-interface SyncResponse {
-  syncedCount: number;
-  errors?: string[];
-}
-
 export async function syncEmployeesFromJibble() {
   try {
-    const { data, error } = await supabase.functions.invoke<SyncResponse>('sync-employees', {
+    const { data, error } = await supabase.functions.invoke('sync-employees', {
       headers: {
-        Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
       }
     });
 
-    if (error) {
-      throw new Error(`Function invocation failed: ${error.message}`);
-    }
+    if (error) throw error;
+    if (!data) throw new Error('No data received from sync function');
 
-    if (!data) {
-      throw new Error('No data received from sync function');
-    }
-
-    return data.syncedCount || 0;
+    return data.syncedCount;
   } catch (error) {
     console.error('Sync failed:', error);
     throw error instanceof Error ? error : new Error('Failed to synchronize employees');
