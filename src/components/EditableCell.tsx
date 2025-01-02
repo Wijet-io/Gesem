@@ -45,7 +45,7 @@ export default function EditableCell({
           step={step}
           min={min}
           max={max}
-          className="w-24"
+          className="w-20 text-center"
         />
         <Button
           size="sm"
@@ -68,7 +68,7 @@ export default function EditableCell({
 
   return (
     <div 
-      className="cursor-pointer hover:bg-gray-50 p-2 rounded text-right"
+      className="cursor-pointer hover:bg-gray-50 p-2 rounded inline-flex justify-center items-center mx-auto"
       onClick={() => setIsEditing(true)}
     >
       {value.toFixed(2)}{suffix}

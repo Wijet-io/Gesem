@@ -35,9 +35,9 @@ export default function Employees() {
     {
       header: 'Nom & Prénom',
       accessor: (row: Employee) => (
-        <div>
-          <div className="font-medium">{row.lastName}</div>
-          <div className="text-sm text-gray-500">{row.firstName}</div>
+        <div className="text-left">
+          <div className="font-medium whitespace-nowrap">{row.lastName}</div>
+          <div className="text-sm text-gray-500 whitespace-nowrap">{row.firstName}</div>
         </div>
       )
     },

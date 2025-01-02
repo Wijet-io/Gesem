@@ -25,7 +25,7 @@ export default function Table<T extends Record<string, any>>({
               <th
                 key={index}
                 scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
               >
                 {column.header}
               </th>
@@ -43,7 +43,7 @@ export default function Table<T extends Record<string, any>>({
                 return (
                   <td
                     key={colIndex}
-                    className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                    className="px-4 py-4 text-sm text-gray-900 text-center"
                   >
                     {cellContent}
                   </td>
