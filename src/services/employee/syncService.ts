@@ -1,18 +1,13 @@
 import { supabase } from '../../lib/supabase';
 
 interface SyncResponse {
-  data: {
-    syncedCount: number;
-    errors?: string[];
-  };
-  error: null | {
-    message: string;
-  };
+  syncedCount: number;
+  errors?: string[];
 }
 
 export async function syncEmployeesFromJibble() {
   try {
-    const { data, error } = await supabase.functions.invoke<SyncResponse['data']>('sync-employees');
+    const { data, error } = await supabase.functions.invoke<SyncResponse>('sync-employees');
 
     if (error) {
       throw new Error(`Function invocation failed: ${error.message}`);
