@@ -19,15 +19,26 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    
+    // Validation basique
+    if (!email.includes('@') || password.length < 8) {
+      setError('Email invalide ou mot de passe trop court (min. 8 caractères)');
+      return;
+    }
+
     const loadingToast = toast.loading('Connexion en cours...');
 
     try {
       await signIn(email, password);
+      // Effacer les données sensibles
+      setPassword('');
       toast.success('Connexion réussie');
       navigate(from, { replace: true });
     } catch (err) {
       console.error('Login error:', err);
-      setError('Email ou mot de passe incorrect');
+      setError('Identifiants invalides');
+      // Délai artificiel pour prévenir le brute force
+      await new Promise(resolve => setTimeout(resolve, 1000));
     } finally {
       toast.dismiss(loadingToast);
     }

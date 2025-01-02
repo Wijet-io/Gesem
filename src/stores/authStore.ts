@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { User } from '../types/user';
 import { supabase } from '../lib/supabase';
-import { syncEmployeesFromJibble } from '../services/employee/syncService';
 
 interface AuthState {
   user: User | null;
@@ -28,7 +27,23 @@ export const useAuthStore = create<AuthState>((set) => ({
           .eq('id', user.id)
           .single();
 
-        set({ user: userData, loading: false, initialized: true });
+        if (userData) {
+          set({
+            user: {
+              id: userData.id,
+              email: userData.email,
+              role: userData.role,
+              firstName: userData.first_name,
+              lastName: userData.last_name,
+              createdAt: userData.created_at,
+              updatedAt: userData.updated_at
+            },
+            loading: false,
+            initialized: true
+          });
+        } else {
+          set({ user: null, loading: false, initialized: true });
+        }
       } else {
         set({ user: null, loading: false, initialized: true });
       }
@@ -42,24 +57,43 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       set({ loading: true });
       
+      // Vérifier si l'utilisateur n'est pas déjà connecté
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        throw new Error('Une session est déjà active');
+      }
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
       if (error) throw error;
-
-      // Récupérer les données utilisateur
-      const { data: userData } = await supabase
+      
+      // Vérifier que l'utilisateur existe dans notre table users
+      const { data: userData, error: userError } = await supabase
         .from('users')
         .select('*')
         .eq('id', data.user.id)
         .single();
 
-      if (!userData) throw new Error('User data not found');
+      if (userError || !userData) {
+        await supabase.auth.signOut();
+        throw new Error('Compte utilisateur non trouvé');
+      }
 
-      set({ user: userData });
-      set({ loading: false });
+      set({
+        user: {
+          id: userData.id,
+          email: userData.email,
+          role: userData.role,
+          firstName: userData.first_name,
+          lastName: userData.last_name,
+          createdAt: userData.created_at,
+          updatedAt: userData.updated_at
+        },
+        loading: false
+      });
     } catch (error) {
       console.error('Sign in error:', error);
       set({ loading: false });
