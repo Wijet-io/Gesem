@@ -41,6 +41,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   signIn: async (email: string, password: string) => {
     try {
       set({ loading: true });
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -48,16 +49,28 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       if (error) throw error;
 
+      // Récupérer les données utilisateur
       const { data: userData } = await supabase
         .from('users')
         .select('*')
         .eq('id', data.user.id)
         .single();
 
+      if (!userData) throw new Error('User data not found');
+
+      set({ user: userData });
+
       // Synchroniser les employés après la connexion
-      await syncEmployeesFromJibble();
-      set({ user: userData, loading: false });
+      try {
+        await syncEmployeesFromJibble();
+      } catch (syncError) {
+        console.error('Sync error after login:', syncError);
+        // Continue même si la synchro échoue
+      }
+
+      set({ loading: false });
     } catch (error) {
+      console.error('Sign in error:', error);
       set({ loading: false });
       throw error;
     }

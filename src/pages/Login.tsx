@@ -4,6 +4,7 @@ import { useAuthStore } from '../stores/authStore';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
+import toast from 'react-hot-toast';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -18,12 +19,17 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    const loadingToast = toast.loading('Connexion en cours...');
 
     try {
       await signIn(email, password);
+      toast.success('Connexion réussie');
       navigate(from, { replace: true });
     } catch (err) {
+      console.error('Login error:', err);
       setError('Email ou mot de passe incorrect');
+    } finally {
+      toast.dismiss(loadingToast);
     }
   };
 

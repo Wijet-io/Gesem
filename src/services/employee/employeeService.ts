@@ -42,11 +42,17 @@ export async function getEmployees() {
 export async function updateEmployee(id: string, updates: EmployeeUpdate) {
   console.log('Updating employee:', id, updates);
   
+  const { data: session } = await supabase.auth.getSession();
+  if (!session?.session) {
+    throw new Error('No active session');
+  }
+
   try {
     const { data, error } = await supabase
       .from('employees')
       .update(updates)
       .eq('id', id)
+      .select()
       .select()
       .single();
 
@@ -58,6 +64,8 @@ export async function updateEmployee(id: string, updates: EmployeeUpdate) {
     if (!data) {
       throw new Error('No data returned after update');
     }
+
+    console.log('Update successful:', data);
 
     return {
       id: data.id,
