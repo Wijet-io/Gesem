@@ -1,5 +1,11 @@
-import { supabase } from '../../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import { getEmployees as getJibbleEmployees } from '../jibble/api';
+
+// Client admin pour les opérations de synchronisation
+const supabaseAdmin = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
+);
 
 export async function syncEmployeesFromJibble() {
   try {
@@ -19,7 +25,7 @@ export async function syncEmployeesFromJibble() {
       const lastName = lastNameParts.join(' ');
 
       try {
-        const { data: existingEmployee, error: selectError } = await supabase
+        const { data: existingEmployee, error: selectError } = await supabaseAdmin
           .from('employees')
           .select()
           .eq('id', jibbleEmployee.id)
@@ -29,7 +35,7 @@ export async function syncEmployeesFromJibble() {
         console.log('Employee exists:', !isNewEmployee);
 
         if (isNewEmployee) {
-          const { error: insertError } = await supabase
+          const { error: insertError } = await supabaseAdmin
             .from('employees')
             .insert({
               id: jibbleEmployee.id,
@@ -46,7 +52,7 @@ export async function syncEmployeesFromJibble() {
             continue;
           }
         } else {
-          const { error: updateError } = await supabase
+          const { error: updateError } = await supabaseAdmin
             .from('employees')
             .update({
               first_name: firstName,

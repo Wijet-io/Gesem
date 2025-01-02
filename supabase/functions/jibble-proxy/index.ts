@@ -1,3 +1,4 @@
+import { createClient } from '@supabase/supabase-js';
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 
 const corsHeaders = {
@@ -5,6 +6,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS'
 };
+
+// Client Supabase avec service role
+const supabaseAdmin = createClient(
+  Deno.env.get('SUPABASE_URL') || '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+);
 
 serve(async (req) => {
   console.log('Edge Function started');
@@ -14,23 +21,20 @@ serve(async (req) => {
   }
 
   try {
-    // 1. Obtenir les credentials
-    const settingsResponse = await fetch(
-      'https://ctxhclytfrnpacrknprk.supabase.co/rest/v1/settings?key=eq.jibble_config',
-      {
-        headers: {
-          'apikey': Deno.env.get('SUPABASE_ANON_KEY') || '',
-          'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
+    // 1. Récupérer la config Jibble avec le client admin
+    const { data: settings, error: settingsError } = await supabaseAdmin
+      .from('settings')
+      .select('value')
+      .eq('key', 'jibble_config')
+      .single();
 
-    const settings = await settingsResponse.json();
-    console.log('Settings retrieved:', settings.length > 0);
-    const config = settings[0].value;
+    if (settingsError) throw new Error(`Failed to get Jibble config: ${settingsError.message}`);
+    if (!settings) throw new Error('No Jibble config found');
 
-    // 2. Authentification
+    const config = settings.value;
+    console.log('Got Jibble config');
+
+    // 2. Obtenir token Jibble
     const tokenResponse = await fetch('https://identity.prod.jibble.io/connect/token', {
       method: 'POST',
       headers: {
@@ -49,11 +53,10 @@ serve(async (req) => {
     }
 
     const tokenData = await tokenResponse.json();
-    console.log('Token obtained');
+    console.log('Got Jibble token');
 
-    // 3. Récupérer les employés (en suivant exactement la structure GAS)
+    // 3. Appeler l'API Jibble
     const employeesResponse = await fetch('https://workspace.prod.jibble.io/v1/People', {
-      method: 'GET',
       headers: {
         'Authorization': `Bearer ${tokenData.access_token}`,
         'Accept': 'application/json'
@@ -65,7 +68,7 @@ serve(async (req) => {
     }
 
     const data = await employeesResponse.json();
-    console.log('Employees retrieved:', data.value?.length || 0);
+    console.log('Got employees data:', data.value?.length || 0);
 
     return new Response(JSON.stringify(data), {
       headers: {
