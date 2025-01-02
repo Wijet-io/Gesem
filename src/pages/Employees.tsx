@@ -1,27 +1,28 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getEmployees } from '../services/employee/employeeService';
+import { getEmployees, updateEmployee } from '../services/employee/employeeService';
 import { syncEmployeesFromJibble } from '../services/employee/syncService';
 import PageHeader from '../components/ui/PageHeader';
 import Table from '../components/ui/Table';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import EditableCell from '../components/EditableCell';
-import type { Employee } from '../types/employee';
-import { updateEmployee } from '../services/employee/employeeService';
+import { Employee } from '../types/employee';
 import toast from 'react-hot-toast';
 
 export default function Employees() {
-  const { data: employees = [], isLoading, refetch } = useQuery({
+  const { data: employees = [], isLoading } = useQuery({
     queryKey: ['employees'],
-    queryFn: getEmployees
+    queryFn: getEmployees,
+    staleTime: Infinity // Empêche le rafraîchissement automatique
   });
 
   const handleJibbleSync = async () => {
     const loadingToast = toast.loading('Synchronisation en cours...');
     try {
       await syncEmployeesFromJibble();
-      await refetch();
+      // Recharger la page au lieu de refetch pour garantir un ordre cohérent
+      window.location.reload();
       toast.success('Synchronisation réussie');
     } catch (error) {
       console.error('Sync error:', error);
@@ -49,7 +50,8 @@ export default function Employees() {
           suffix=" €"
           onSave={async (value) => {
             await updateEmployee(row.id, { normal_rate: value });
-            refetch();
+            // Mettre à jour localement au lieu de refetch
+            row.normalRate = value;
             toast.success('Taux horaire normal mis à jour');
           }}
         />
@@ -63,7 +65,8 @@ export default function Employees() {
           suffix=" €"
           onSave={async (value) => {
             await updateEmployee(row.id, { extra_rate: value });
-            refetch();
+            // Mettre à jour localement au lieu de refetch
+            row.extraRate = value;
             toast.success('Taux horaire supplémentaire mis à jour');
           }}
         />
@@ -79,7 +82,8 @@ export default function Employees() {
           max={12}
           onSave={async (value) => {
             await updateEmployee(row.id, { min_hours: value });
-            refetch();
+            // Mettre à jour localement au lieu de refetch
+            row.minHours = value;
             toast.success('Heures contractuelles mises à jour');
           }}
         />
