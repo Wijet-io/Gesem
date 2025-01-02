@@ -6,9 +6,10 @@ export async function getEmployees(): Promise<JibblePerson[]> {
   
   try {
     const { data, error } = await supabase.functions.invoke('jibble-proxy', {
+      body: { action: 'getEmployees' },
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
       }
     });
 
@@ -41,18 +42,18 @@ export async function getAttendanceForPeriod(
   try {
     const { data, error } = await supabase.functions.invoke('jibble-proxy', {
       body: {
-        endpoint: 'timesheets-summary',
+        action: 'getTimesheets',
         params: {
           period: 'Custom',
           date: startDate,
           endDate: endDate,
           personIds: employeeId,
-          $filter: "total ne duration'PT0S'"
+          filter: "total ne duration'PT0S'"
         }
       },
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
       }
     });
 
