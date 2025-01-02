@@ -18,22 +18,36 @@ export async function syncEmployeesFromJibble() {
 
     let syncedCount = 0;
     const errors: string[] = [];
+    
+    // Créer un Set des IDs des employés actifs de Jibble
+    const activeEmployeeIds = new Set(jibbleEmployees.map(emp => emp.id));
+
+    // 1. Supprimer les employés qui ne sont plus dans Jibble
+    const { error: deleteError } = await supabaseAdmin
+      .from('employees')
+      .delete()
+      .not('id', 'in', `(${Array.from(activeEmployeeIds).map(id => `'${id}'`).join(',')})`);
+
+    if (deleteError) {
+      console.error('Delete error:', deleteError);
+      errors.push(`Failed to remove inactive employees: ${deleteError.message}`);
+    }
 
     for (const jibbleEmployee of jibbleEmployees) {
       console.log('Processing employee:', jibbleEmployee);
       const [firstName, ...lastNameParts] = jibbleEmployee.fullName.split(' ');
       const lastName = lastNameParts.join(' ');
+
       try {
-        const { data: existingEmployee, error: selectError } = await supabaseAdmin
+        // Vérifier si l'employé existe déjà
+        const { data: existingEmployee } = await supabaseAdmin
           .from('employees')
           .select('*')
           .eq('id', jibbleEmployee.id)
           .maybeSingle();
 
-        const isNewEmployee = !existingEmployee;
-        console.log('Employee exists:', !isNewEmployee);
-
-        if (isNewEmployee) {
+        if (!existingEmployee) {
+          // Nouvel employé : insérer avec les taux par défaut
           const { error: insertError } = await supabaseAdmin
             .from('employees')
             .insert({
@@ -51,6 +65,7 @@ export async function syncEmployeesFromJibble() {
             continue;
           }
         } else {
+          // Employé existant : mettre à jour uniquement le nom
           const { error: updateError } = await supabaseAdmin
             .from('employees')
             .update({
