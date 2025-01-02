@@ -23,15 +23,14 @@ export async function syncEmployeesFromJibble() {
       console.log('Processing employee:', jibbleEmployee);
       const [firstName, ...lastNameParts] = jibbleEmployee.fullName.split(' ');
       const lastName = lastNameParts.join(' ');
-
       try {
         const { data: existingEmployee, error: selectError } = await supabaseAdmin
           .from('employees')
-          .select()
+          .select('*')
           .eq('id', jibbleEmployee.id)
-          .single();
+          .maybeSingle();
 
-        const isNewEmployee = selectError?.code === 'PGRST116';
+        const isNewEmployee = !existingEmployee;
         console.log('Employee exists:', !isNewEmployee);
 
         if (isNewEmployee) {
