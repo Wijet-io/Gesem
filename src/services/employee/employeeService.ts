@@ -2,43 +2,95 @@ import { Employee, EmployeeUpdate, RateChangeLog } from '../../types/employee';
 import { supabase } from '../../lib/supabase';
 
 export async function getEmployees() {
-  const { data, error } = await supabase
-    .from('employees')
-    .select('*')
-    .order('last_name', { ascending: true });
+  console.log('Fetching employees from Supabase...');
+  
+  try {
+    const { data, error } = await supabase
+      .from('employees') 
+      .select('*')
+      .order('last_name', { ascending: true });
 
-  if (error) throw error;
-  return data.map(employee => ({
-    id: employee.id,
-    firstName: employee.first_name,
-    lastName: employee.last_name,
-    normalRate: employee.normal_rate,
-    extraRate: employee.extra_rate,
-    minHours: employee.min_hours,
-    createdAt: employee.created_at,
-    updatedAt: employee.updated_at
-  })) as Employee[];
+    if (error) {
+      console.error('Database error:', error);
+      throw error;
+    }
+
+    if (!data) {
+      console.log('No employees found');
+      return [];
+    }
+
+    console.log('Found employees:', data.length);
+
+    // Transformer les données en format Employee
+    return data.map(employee => ({
+      id: employee.id,
+      firstName: employee.first_name || '',
+      lastName: employee.last_name || '',
+      normalRate: Number(employee.normal_rate || 0),
+      extraRate: Number(employee.extra_rate || 0),
+      minHours: Number(employee.min_hours || 8),
+      createdAt: employee.created_at || new Date().toISOString(),
+      updatedAt: employee.updated_at || new Date().toISOString()
+    }));
+  } catch (error) {
+    console.error('Failed to fetch employees:', error);
+    throw error;
+  }
 }
 
 export async function updateEmployee(id: string, updates: EmployeeUpdate) {
-  const { data, error } = await supabase
-    .from('employees')
-    .update(updates)
-    .eq('id', id)
-    .select()
-    .single();
+  console.log('Updating employee:', id, updates);
+  
+  try {
+    const { data, error } = await supabase
+      .from('employees')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
 
-  if (error) throw error;
-  return data as Employee;
+    if (error) {
+      console.error('Update error:', error);
+      throw error;
+    }
+
+    if (!data) {
+      throw new Error('No data returned after update');
+    }
+
+    return {
+      id: data.id,
+      firstName: data.first_name || '',
+      lastName: data.last_name || '',
+      normalRate: Number(data.normal_rate || 0),
+      extraRate: Number(data.extra_rate || 0),
+      minHours: Number(data.min_hours || 8),
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    } as Employee;
+  } catch (error) {
+    console.error('Failed to update employee:', error);
+    throw error;
+  }
 }
 
 export async function getRateChangeLogs(employeeId: string) {
-  const { data, error } = await supabase
-    .from('rate_change_logs')
-    .select('*')
-    .eq('employee_id', employeeId)
-    .order('created_at', { ascending: false });
+  try {
+    const { data, error } = await supabase
+      .from('rate_change_logs')
+      .select('*')
+      .eq('employee_id', employeeId)
+      .order('created_at', { ascending: false });
 
-  if (error) throw error;
-  return data as RateChangeLog[];
+    if (error) {
+      console.error('Failed to fetch rate change logs:', error);
+      throw error;
+    }
+
+    return data as RateChangeLog[];
+  } catch (error) {
+    console.error('Failed to get rate change logs:', error);
+    throw error;
+  }
 }

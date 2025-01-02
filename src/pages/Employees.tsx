@@ -1,6 +1,5 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { formatMoney } from '../utils/money';
 import { getEmployees } from '../services/employee/employeeService';
 import { syncEmployeesFromJibble } from '../services/employee/syncService';
 import PageHeader from '../components/ui/PageHeader';
@@ -11,56 +10,98 @@ import { Employee } from '../types/employee';
 import toast from 'react-hot-toast';
 
 export default function Employees() {
-  const { data: employees, isLoading, refetch } = useQuery({
+  const queryResult = useQuery<Employee[], Error>({
     queryKey: ['employees'],
-    queryFn: getEmployees
+    queryFn: async () => {
+      console.log('Fetching employees list');
+      const data = await getEmployees();
+      console.log('Employees fetched:', data?.length);
+      return data;
+    }
   });
+
+  const { data: employees, isLoading, refetch } = queryResult;
+
+  // Gérer l'erreur avec un effet
+  React.useEffect(() => {
+    if (queryResult.error) {
+      console.error('Error fetching employees:', queryResult.error);
+      toast.error('Erreur lors du chargement des employés');
+    }
+  }, [queryResult.error]);
 
   const handleJibbleSync = async () => {
     try {
-      toast.loading('Synchronisation en cours...');
-      const count = await syncEmployeesFromJibble();
-      toast.dismiss();
-      toast.success(`${count} employés synchronisés depuis Jibble`);
-      refetch();
-    } catch (error) {
+      const loadingToast = toast.loading('Synchronisation avec Jibble en cours...');
+      console.log('Starting Jibble sync...');
+      
+      const result = await syncEmployeesFromJibble();
+      console.log('Sync result:', result);
+
+      toast.dismiss(loadingToast);
+      
+      if (result.errors?.length) {
+        toast.error(`Synchronisation terminée avec ${result.errors.length} erreurs`);
+      } else {
+        toast.success(`${result.syncedCount} employés synchronisés avec succès`);
+      }
+
+      await refetch();
+      
+    } catch (err) {
+      const error = err as Error;
       console.error('Sync failed:', error);
-      toast.dismiss();
       toast.error('Erreur lors de la synchronisation avec Jibble');
     }
   };
 
   const columns = [
-    { header: 'Nom', accessor: (row: Employee) => `${row.firstName} ${row.lastName}` },
+    { 
+      header: 'Nom',
+      accessor: (row: Employee) => (
+        <div className="text-sm">
+          <div className="font-medium">{row.lastName}</div>
+          <div className="text-gray-500">{row.firstName}</div>
+        </div>
+      )
+    },
     { 
       header: 'Taux Horaire Normal',
-      accessor: (row: Employee) => formatMoney(row.normalRate)
+      accessor: (row: Employee) => (
+        <div className="text-right">
+          {row.normalRate ? `${row.normalRate.toFixed(2)} €` : '-'}
+        </div>
+      )
     },
     { 
       header: 'Taux Horaire Supp.',
-      accessor: (row: Employee) => formatMoney(row.extraRate)
+      accessor: (row: Employee) => (
+        <div className="text-right">
+          {row.extraRate ? `${row.extraRate.toFixed(2)} €` : '-'}
+        </div>
+      )
     },
     { 
       header: 'Heures Min.',
-      accessor: (row: Employee) => `${row.minHours}h`
+      accessor: (row: Employee) => (
+        <div className="text-right">
+          {row.minHours}h
+        </div>
+      )
     },
     {
       header: 'Actions',
       accessor: (row: Employee) => (
-        <div className="flex space-x-2">
+        <div className="flex justify-end space-x-2">
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => console.log('Edit', row.id)}
+            onClick={() => {
+              console.log('Edit employee:', row);
+              toast.error('Fonctionnalité en développement');
+            }}
           >
             Modifier
-          </Button>
-          <Button
-            variant="danger"
-            size="sm"
-            onClick={() => console.log('Archive', row.id)}
-          >
-            Archiver
           </Button>
         </div>
       )
@@ -68,30 +109,39 @@ export default function Employees() {
   ];
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader
         title="Gestion des Employés"
-        description="Gérez les informations et les taux horaires des employés"
+        description="Synchronisez et gérez les informations des employés"
       />
       
-      <Card className="p-6">
-        <div className="mb-4 flex justify-end space-x-4">
+      <Card>
+        <div className="p-4 border-b border-gray-200">
           <Button
-            variant="secondary"
+            variant="primary"
             onClick={handleJibbleSync}
+            disabled={isLoading}
           >
             Synchroniser avec Jibble
           </Button>
         </div>
-        
-        {isLoading ? (
-          <div className="text-center py-4">Chargement...</div>
-        ) : (
-          <Table
-            columns={columns}
-            data={employees || []}
-          />
-        )}
+
+        <div className="p-4">
+          {isLoading ? (
+            <div className="text-center py-8 text-gray-500">
+              Chargement des employés...
+            </div>
+          ) : !employees?.length ? (
+            <div className="text-center py-8 text-gray-500">
+              Aucun employé trouvé. Synchronisez avec Jibble pour importer la liste.
+            </div>
+          ) : (
+            <Table
+              columns={columns}
+              data={employees}
+            />
+          )}
+        </div>
       </Card>
     </div>
   );
