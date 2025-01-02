@@ -32,15 +32,61 @@ export default function Employees() {
   const columns = [
     {
       header: 'Nom & Prénom',
-      accessor: (row: Employee) => `${row.lastName} ${row.firstName}`
+      accessor: (row: Employee) => (
+        <div>
+          <div className="font-medium">{row.lastName}</div>
+          <div className="text-sm text-gray-500">{row.firstName}</div>
+        </div>
+      )
+    },
+    {
+      header: 'Taux Horaire Normal',
+      accessor: (row: Employee) => (
+        <div className="text-right">
+          {row.normalRate ? `${row.normalRate.toFixed(2)} €` : '-'}
+        </div>
+      )
+    },
+    {
+      header: 'Taux Horaire Supp.',
+      accessor: (row: Employee) => (
+        <div className="text-right">
+          {row.extraRate ? `${row.extraRate.toFixed(2)} €` : '-'}
+        </div>
+      )
+    },
+    {
+      header: 'Heures Min.',
+      accessor: (row: Employee) => (
+        <div className="text-right">
+          {row.minHours}h
+        </div>
+      )
+    },
+    {
+      header: 'Actions',
+      accessor: (row: Employee) => (
+        <div className="flex justify-end space-x-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              console.log('Edit employee:', row);
+              toast.error('La modification sera bientôt disponible');
+            }}
+          >
+            Modifier
+          </Button>
+        </div>
+      )
     }
   ];
 
   return (
     <div>
       <PageHeader
-        title="Employés"
-        description="Gestion des employés"
+        title="Gestion des Employés"
+        description="Synchronisez et gérez les informations des employés"
       />
       
       <Card className="p-6">
@@ -51,9 +97,11 @@ export default function Employees() {
         </div>
 
         {isLoading ? (
-          <div>Chargement...</div>
+          <div className="text-center py-4">Chargement...</div>
         ) : employees.length === 0 ? (
-          <div>Aucun employé. Synchronisez pour commencer.</div>
+          <div className="text-center py-4">
+            Aucun employé. Synchronisez pour commencer.
+          </div>
         ) : (
           <Table 
             columns={columns} 
