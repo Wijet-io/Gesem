@@ -83,13 +83,36 @@ export async function importAttendance({ startDate, endDate, employeeIds }: Atte
 export async function getAttendanceRecords(startDate: string, endDate: string) {
   const { data, error } = await supabase
     .from('attendance_records')
-    .select('*')
+    .select(`
+      id,
+      employee_id,
+      employee_name,
+      date,
+      normal_hours,
+      extra_hours,
+      status,
+      original_data,
+      correction,
+      last_import_id
+    `)
     .gte('date', startDate)
     .lte('date', endDate)
-    .order('date', { ascending: true });
+    .order('date', { ascending: true })
+    .order('employee_name', { ascending: true });
 
   if (error) throw error;
-  return data as AttendanceRecord[];
+  return data.map(record => ({
+    id: record.id,
+    employeeId: record.employee_id,
+    employeeName: record.employee_name,
+    date: record.date,
+    normalHours: record.normal_hours,
+    extraHours: record.extra_hours,
+    status: record.status,
+    originalData: record.original_data,
+    correction: record.correction,
+    lastImportId: record.last_import_id
+  })) as AttendanceRecord[];
 }
 
 export async function updateAttendanceRecord(id: string, updates: Partial<AttendanceRecord>) {

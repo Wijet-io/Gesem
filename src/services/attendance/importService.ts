@@ -38,38 +38,64 @@ export class AttendanceImporter {
       const timesheets = await getAttendanceForPeriod(
         employee.id,
         startDate,
-        endDate
+        endDate,
       );
+
+      if (!timesheets?.length) {
+        console.log(`No timesheets found for employee ${employee.id}`);
+        return [];
+      }
 
       const records = await Promise.all(
         timesheets.filter(timesheet => timesheet.daily?.length > 0).map(async (timesheet) => {
           const daily = timesheet.daily[0];
           const totalHours = parseHours(daily.payrollHours);
 
+          // Déterminer le statut
+          let status: AttendanceRecord['status'] = 'VALID';
+          if (totalHours > 13) {
+            status = 'NEEDS_CORRECTION';
+          } else if (totalHours < employee.minHours) {
+            status = 'TO_VERIFY';
+          }
+
           const record: Partial<AttendanceRecord> = {
             employeeId: employee.id,
+            employeeName: `${employee.firstName} ${employee.lastName}`,
             date: daily.date,
             normalHours: Math.min(totalHours, employee.minHours),
             extraHours: Math.max(0, totalHours - employee.minHours),
-            status: totalHours > 13 ? 'NEEDS_CORRECTION' : 'VALID',
+            status,
             originalData: {
               startTime: daily.firstIn,
               endTime: daily.lastOut,
               totalHours,
               source: 'JIBBLE'
-            }
+            },
+            lastImportId: crypto.randomUUID()
           };
 
-          const { data, error } = await supabase
+          // Ne pas écraser les enregistrements corrigés
+          const { data: existing } = await supabase
             .from('attendance_records')
-            .upsert(record)
-            .select()
+            .select('status')
+            .eq('employee_id', employee.id)
+            .eq('date', daily.date)
             .single();
 
-          if (error) throw error;
-          return data as AttendanceRecord;
+          if (!existing || existing.status !== 'CORRECTED') {
+            const { data, error } = await supabase
+              .from('attendance_records')
+              .upsert(record)
+              .select()
+              .single();
+
+            if (error) throw error;
+            return data as AttendanceRecord;
+          }
+          return null;
         })
-      );
+      ).then(records => records.filter((r): r is AttendanceRecord => r !== null));
       
       return records;
     } catch (error) {

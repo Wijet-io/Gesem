@@ -41,12 +41,12 @@ export async function getAttendanceForPeriod(
   try {
     const { data, error } = await supabase.functions.invoke('jibble-proxy', {
       body: {
-        endpoint: '/timesheets-summary',
+        endpoint: 'timesheets-summary',
         params: {
           period: 'Custom',
           date: startDate,
           endDate: endDate,
-          personId: employeeId,
+          personIds: employeeId,
           $filter: "total ne duration'PT0S'"
         }
       },
