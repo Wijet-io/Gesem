@@ -53,7 +53,6 @@ export async function updateEmployee(id: string, updates: EmployeeUpdate) {
       .update(updates)
       .eq('id', id)
       .select()
-      .select()
       .single();
 
     if (error) {
