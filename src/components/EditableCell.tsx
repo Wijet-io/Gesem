@@ -23,6 +23,15 @@ export default function EditableCell({
   const [editValue, setEditValue] = useState(value);
   const [isLoading, setIsLoading] = useState(false);
 
+  const handleKeyDown = async (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      await handleSave();
+    } else if (e.key === 'Escape') {
+      setIsEditing(false);
+    }
+  };
+
   const handleSave = async () => {
     setIsLoading(true);
     try {
@@ -45,6 +54,7 @@ export default function EditableCell({
           step={step}
           min={min}
           max={max}
+          onKeyDown={handleKeyDown}
           className="w-20 text-center"
         />
         <Button
