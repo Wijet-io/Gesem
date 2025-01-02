@@ -55,7 +55,8 @@ export class AttendanceImporter {
             originalData: {
               startTime: daily.firstIn,
               endTime: daily.lastOut,
-              totalHours
+              totalHours,
+              source: 'JIBBLE'
             }
           };
 

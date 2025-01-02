@@ -9,10 +9,17 @@ import Button from '../components/ui/Button';
 import ImportModal from '../components/ImportModal';
 import { formatDate } from '../utils/date';
 import { formatHours } from '../utils/hours';
+import { getEmployees } from '../services/employee/employeeService';
 import { AttendanceRecord } from '../types/attendance';
 
 export default function Attendance() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  
+  const { data: employees = [] } = useQuery({
+    queryKey: ['employees'],
+    queryFn: getEmployees
+  });
+
   const [startDate] = useState(() => {
     const date = new Date();
     date.setDate(date.getDate() - 7);
@@ -45,9 +52,10 @@ export default function Attendance() {
       header: 'Statut',
       accessor: (row: AttendanceRecord) => {
         const variants = {
-          VALID: { variant: 'success', label: 'Valide' },
+          VALID: { variant: 'success', label: 'Validé' },
           NEEDS_CORRECTION: { variant: 'error', label: 'À Corriger' },
-          CORRECTED: { variant: 'info', label: 'Corrigé' }
+          CORRECTED: { variant: 'info', label: 'Corrigé' },
+          TO_VERIFY: { variant: 'warning', label: 'À Vérifier' }
         };
         const { variant, label } = variants[row.status];
         return <Badge variant={variant as any}>{label}</Badge>;
@@ -92,6 +100,7 @@ export default function Attendance() {
       <ImportModal
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
+        employees={employees}
         onSuccess={() => {
           setIsImportModalOpen(false);
           refetch();
