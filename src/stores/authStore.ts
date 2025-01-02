@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { User } from '../types/user';
 import { supabase } from '../lib/supabase';
+import { syncEmployeesFromJibble } from '../services/employee/syncService';
 
 interface AuthState {
   user: User | null;
@@ -53,6 +54,8 @@ export const useAuthStore = create<AuthState>((set) => ({
         .eq('id', data.user.id)
         .single();
 
+      // Synchroniser les employés après la connexion
+      await syncEmployeesFromJibble();
       set({ user: userData, loading: false });
     } catch (error) {
       set({ loading: false });

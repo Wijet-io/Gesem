@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getEmployees } from '../services/employee/employeeService';
 import { syncEmployeesFromJibble } from '../services/employee/syncService';
@@ -6,10 +6,12 @@ import PageHeader from '../components/ui/PageHeader';
 import Table from '../components/ui/Table';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
+import EmployeeEditModal from '../components/EmployeeEditModal';
 import type { Employee } from '../types/employee';
 import toast from 'react-hot-toast';
 
 export default function Employees() {
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const { data: employees = [], isLoading, refetch } = useQuery({
     queryKey: ['employees'],
     queryFn: getEmployees
@@ -71,8 +73,7 @@ export default function Employees() {
             variant="secondary"
             size="sm"
             onClick={() => {
-              console.log('Edit employee:', row);
-              toast.error('La modification sera bientôt disponible');
+              setSelectedEmployee(row);
             }}
           >
             Modifier
@@ -108,6 +109,13 @@ export default function Employees() {
             data={employees} 
           />
         )}
+        
+        <EmployeeEditModal
+          employee={selectedEmployee}
+          isOpen={!!selectedEmployee}
+          onClose={() => setSelectedEmployee(null)}
+          onSuccess={refetch}
+        />
       </Card>
     </div>
   );
