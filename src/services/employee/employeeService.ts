@@ -7,8 +7,8 @@ export async function getEmployees() {
   try {
     const { data, error } = await supabase
       .from('employees') 
-      .select('*')
-      .order('last_name', { ascending: true });
+      .select('*, created_at')
+      .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Database error:', error);

@@ -11,10 +11,9 @@ import { Employee } from '../types/employee';
 import toast from 'react-hot-toast';
 
 export default function Employees() {
-  const { data: employees = [], isLoading } = useQuery({
+  const { data: employees = [], isLoading, refetch } = useQuery({
     queryKey: ['employees'],
-    queryFn: getEmployees,
-    staleTime: Infinity // Empêche le rafraîchissement automatique
+    queryFn: getEmployees
   });
 
   const handleJibbleSync = async () => {
@@ -50,8 +49,7 @@ export default function Employees() {
           suffix=" €"
           onSave={async (value) => {
             await updateEmployee(row.id, { normal_rate: value });
-            // Mettre à jour localement au lieu de refetch
-            row.normalRate = value;
+            refetch();
             toast.success('Taux horaire normal mis à jour');
           }}
         />
@@ -65,8 +63,7 @@ export default function Employees() {
           suffix=" €"
           onSave={async (value) => {
             await updateEmployee(row.id, { extra_rate: value });
-            // Mettre à jour localement au lieu de refetch
-            row.extraRate = value;
+            refetch();
             toast.success('Taux horaire supplémentaire mis à jour');
           }}
         />
@@ -82,8 +79,7 @@ export default function Employees() {
           max={12}
           onSave={async (value) => {
             await updateEmployee(row.id, { min_hours: value });
-            // Mettre à jour localement au lieu de refetch
-            row.minHours = value;
+            refetch();
             toast.success('Heures contractuelles mises à jour');
           }}
         />
