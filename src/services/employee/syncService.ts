@@ -30,17 +30,28 @@ export async function syncEmployeesFromJibble(): Promise<SyncResult> {
       try {
         const [firstName, ...lastNameParts] = employee.fullName.split(' ');
         const lastName = lastNameParts.join(' ');
+        
+        // Récupérer d'abord les données existantes
+        const { data: existingEmployee } = await supabase
+          .from('employees')
+          .select('normal_rate, extra_rate, min_hours')
+          .eq('id', employee.id)
+          .single();
+
+        // Préparer les données à mettre à jour
+        const employeeData = {
+          id: employee.id,
+          first_name: firstName,
+          last_name: lastName,
+          // Conserver les valeurs existantes ou utiliser les valeurs par défaut
+          normal_rate: existingEmployee?.normal_rate ?? 0,
+          extra_rate: existingEmployee?.extra_rate ?? 0,
+          min_hours: existingEmployee?.min_hours ?? 8
+        };
 
         const { error: upsertError } = await supabase
           .from('employees')
-          .upsert({
-            id: employee.id,
-            first_name: firstName,
-            last_name: lastName,
-            normal_rate: 0,
-            extra_rate: 0,
-            min_hours: 8
-          });
+          .upsert(employeeData);
 
         if (upsertError) {
           console.error('Failed to upsert employee:', employee.fullName, upsertError);
