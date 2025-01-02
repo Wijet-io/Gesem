@@ -42,7 +42,7 @@ export class AttendanceImporter {
       );
 
       const records = await Promise.all(
-        timesheets.map(async (timesheet) => {
+        timesheets.filter(timesheet => timesheet.daily?.length > 0).map(async (timesheet) => {
           const daily = timesheet.daily[0];
           const totalHours = parseHours(daily.payrollHours);
 

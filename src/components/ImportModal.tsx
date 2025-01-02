@@ -17,8 +17,13 @@ interface ImportModalProps {
 export default function ImportModal({ isOpen, onClose, onSuccess, employees }: ImportModalProps) {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const { progress, importAttendance } = useAttendanceImport();
+
+  const filteredEmployees = employees.filter(emp => 
+    `${emp.lastName} ${emp.firstName}`.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleImport = async () => {
     if (selectedEmployees.length === 0) {
@@ -82,13 +87,24 @@ export default function ImportModal({ isOpen, onClose, onSuccess, employees }: I
           <div className="flex justify-between items-center">
             <label className="block text-sm font-medium text-gray-700">
               Employés ({selectedEmployees.length} sélectionnés)
-            </label>
-            <div className="space-x-2">
+            </label>            
+          </div>
+          
+          <div className="flex justify-between items-center space-x-2 mb-2">
+            <Input
+              type="search"
+              placeholder="Rechercher un employé..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1"
+            />
+            <div className="flex space-x-2">
               <Button
                 size="sm"
                 variant="secondary"
                 onClick={handleSelectAll}
                 disabled={isImporting}
+                className="whitespace-nowrap"
               >
                 Tout sélectionner
               </Button>
@@ -97,13 +113,15 @@ export default function ImportModal({ isOpen, onClose, onSuccess, employees }: I
                 variant="secondary"
                 onClick={handleUnselectAll}
                 disabled={isImporting}
+                className="whitespace-nowrap"
               >
                 Tout désélectionner
               </Button>
             </div>
           </div>
+          
           <div className="max-h-60 overflow-y-auto border rounded-md p-2">
-            {employees.map((employee) => (
+            {filteredEmployees.map((employee) => (
               <label
                 key={employee.id}
                 className="flex items-center space-x-2 p-2 hover:bg-gray-50"
