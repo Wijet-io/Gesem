@@ -7,7 +7,11 @@ interface SyncResponse {
 
 export async function syncEmployeesFromJibble() {
   try {
-    const { data, error } = await supabase.functions.invoke<SyncResponse>('sync-employees');
+    const { data, error } = await supabase.functions.invoke<SyncResponse>('sync-employees', {
+      headers: {
+        Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+      }
+    });
 
     if (error) {
       throw new Error(`Function invocation failed: ${error.message}`);
