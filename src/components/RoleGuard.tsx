@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
-import { UserRole } from '../types/user';
+import { UserRole } from '../types/domain/user';
 import { hasPermission } from '../services/auth/authService';
 
 interface RoleGuardProps {

@@ -1,7 +1,7 @@
 import { supabase } from '../../lib/supabase';
 import { getAttendanceForPeriod } from '../jibble/api';
-import { Employee } from '../../types/employee';
-import { AttendanceRecord } from '../../types/attendance';
+import { Employee } from '../../types/domain/employee';
+import { AttendanceRecord } from '../../types/domain/attendance';
 import { parseHours } from '../../utils/hours';
 
 interface ImportProgress {

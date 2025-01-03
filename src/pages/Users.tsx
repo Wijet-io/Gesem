@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { listUsers, createUser, updateUserRole, deleteUser } from '../services/auth/adminService';
-import { UserRole } from '../types/user';
+import { UserRole } from '../types/domain/user';
 import PageHeader from '../components/ui/PageHeader';
 import Table from '../components/ui/Table';
 import Card from '../components/ui/Card';

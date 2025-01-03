@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
 import Input from './ui/Input';
-import { Employee } from '../types/employee';
+import { Employee } from '../types/domain/employee';
 import ProgressBar from './ui/ProgressBar';
 import { useAttendanceImport } from '../hooks/useAttendanceImport';
 import toast from 'react-hot-toast';

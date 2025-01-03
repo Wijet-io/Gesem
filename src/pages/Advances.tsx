@@ -8,7 +8,7 @@ import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import { formatDate } from '../utils/date';
 import { formatMoney } from '../utils/money';
-import { Advance } from '../types/advance';
+import { Advance } from '../types/domain/advance';
 
 export default function Advances() {
   const [startDate] = useState(() => {

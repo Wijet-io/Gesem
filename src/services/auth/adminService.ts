@@ -1,5 +1,5 @@
 import { supabase } from '../../lib/supabase';
-import { User, UserRole } from '../../types/user';
+import { User, UserRole } from '../../types/domain/user';
 import { getCurrentUser } from './authService';
 
 export async function createUser(email: string, password: string, role: UserRole, firstName: string, lastName: string) {

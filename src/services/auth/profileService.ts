@@ -1,5 +1,5 @@
 import { supabase } from '../../lib/supabase';
-import { User } from '../../types/user';
+import { User } from '../../types/domain/user';
 
 export async function updateProfile(userId: string, updates: {
   firstName?: string;

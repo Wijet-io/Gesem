@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { AttendanceImporter } from '../services/attendance/importService';
-import { AttendanceRecord } from '../types/attendance';
+import { AttendanceRecord } from '../types/domain/attendance';
 
 interface ImportProgress {
   total: number;

@@ -1,6 +1,44 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.2';
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 
+interface JibbleEmployee {
+  id: string;
+  fullName: string;
+  status: string;
+  role: string;
+}
+
+interface Database {
+  public: {
+    Tables: {
+      employees: {
+        Row: {
+          id: string;
+          first_name: string | null;
+          last_name: string | null;
+          normal_rate: number | null;
+          extra_rate: number | null;
+          min_hours: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Insert: {
+          id: string;
+          first_name: string;
+          last_name: string;
+          normal_rate: number;
+          extra_rate: number;
+          min_hours: number;
+        };
+        Update: Partial<Database['public']['Tables']['employees']['Insert']>;
+      };
+    };
+  };
+}
+
+type SupabaseClient = ReturnType<typeof createClient<Database>>;
+type Employee = Database['public']['Tables']['employees']['Row'];
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': '*',
@@ -27,7 +65,7 @@ serve(async (req) => {
     }
 
     // Client Supabase avec service role
-    const supabaseAdmin = createClient(
+    const supabaseAdmin = createClient<Database>(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
@@ -76,7 +114,7 @@ serve(async (req) => {
       throw new Error('Failed to fetch employees from Jibble');
     }
 
-    const { value: jibbleEmployees } = await employeesResponse.json();
+    const { value: jibbleEmployees }: { value: JibbleEmployee[] } = await employeesResponse.json();
     
     if (!Array.isArray(jibbleEmployees)) {
       throw new Error('Invalid response from Jibble API');
@@ -89,10 +127,11 @@ serve(async (req) => {
     // Récupérer les données existantes de tous les employés
     const { data: existingEmployees } = await supabaseAdmin
       .from('employees')
-      .select('id, normal_rate, extra_rate, min_hours');
+      .select('id, normal_rate, extra_rate, min_hours')
+      .returns<Employee[]>();
 
     const existingEmployeesMap = new Map(
-      existingEmployees?.map(emp => [emp.id, emp]) || []
+      (existingEmployees || []).map(emp => [emp.id, emp])
     );
 
     let syncedCount = 0;
@@ -116,6 +155,12 @@ serve(async (req) => {
       const [firstName, ...lastNameParts] = employee.fullName.split(' ');
       const lastName = lastNameParts.join(' ');
 
+      const existing = existingEmployeesMap.get(employee.id) || {
+        normal_rate: 0,
+        extra_rate: 0,
+        min_hours: 8
+      };
+
       try {
         const { error: upsertError } = await supabaseAdmin
           .from('employees')
@@ -123,9 +168,9 @@ serve(async (req) => {
             id: employee.id,
             first_name: firstName,
             last_name: lastName,
-            normal_rate: existing?.normal_rate ?? 0,
-            extra_rate: existing?.extra_rate ?? 0,
-            min_hours: existing?.min_hours ?? 8
+            normal_rate: existingEmployees.normal_rate,
+            extra_rate: existingEmployees.extra_rate,
+            min_hours: existingEmployees.min_hours
           });
 
         if (upsertError) {

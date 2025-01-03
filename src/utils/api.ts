@@ -1,4 +1,4 @@
-import { JibbleError } from '../services/jibble/types';
+import { JibbleError } from '../types/api/jibble';
 
 export class APIError extends Error {
   constructor(

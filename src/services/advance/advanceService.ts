@@ -1,4 +1,4 @@
-import { Advance } from '../../types/advance';
+import { Advance } from '../../types/domain/advance';
 import { supabase } from '../../lib/supabase';
 
 export async function getAdvances(startDate: string, endDate: string) {

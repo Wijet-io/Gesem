@@ -1,4 +1,4 @@
-import { User, UserRole } from '../../types/user';
+import { User, UserRole } from '../../types/domain/user';
 import { supabase } from '../../lib/supabase';
 
 export async function signIn(email: string, password: string) {

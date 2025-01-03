@@ -1,3 +1,5 @@
+export type AdvanceStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
 export interface Advance {
   id: string;
   employeeId: string;
@@ -5,7 +7,7 @@ export interface Advance {
   date: string;
   createdBy: string;
   createdAt: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  status: AdvanceStatus;
   approvedBy?: string;
   approvedAt?: string;
   notes?: string;

@@ -1,7 +1,7 @@
-import { JibblePerson, TimesheetSummary } from './types';
+import { JibblePerson, JibbleTimesheet } from '../../types/api/jibble';
 import { supabase } from '../../lib/supabase'; 
-import { JIBBLE_API, ERROR_MESSAGES } from './constants';
-import { handleResponse, APIError } from '../../utils/api';
+import { ERROR_MESSAGES } from './constants';
+import { APIError } from '../../utils/api';
 
 export async function getEmployees(): Promise<JibblePerson[]> {
   console.log('Getting employees from Jibble...');
@@ -34,7 +34,7 @@ export async function getAttendanceForPeriod(
   employeeId: string,
   startDate: string,
   endDate: string
-): Promise<TimesheetSummary[]> {
+): Promise<JibbleTimesheet[]> {
   console.log('Getting attendance for period:', { employeeId, startDate, endDate });
   
   try {

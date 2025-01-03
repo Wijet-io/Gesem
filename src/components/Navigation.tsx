@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { useNavigate } from 'react-router-dom';
-import { UserRole } from '../types/user';
+import { UserRole } from '../types/domain/user';
 import Button from './ui/Button';
 import ProfileModal from './ProfileModal';
 

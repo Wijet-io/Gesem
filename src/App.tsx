@@ -9,7 +9,7 @@ import Attendance from './pages/Attendance';
 import PayrollGeneration from './pages/PayrollGeneration';
 import Advances from './pages/Advances';
 import Users from './pages/Users';
-import { UserRole } from './types/user';
+import { UserRole } from './types/domain/user';
 import RoleGuard from './components/RoleGuard';
 
 function App() {

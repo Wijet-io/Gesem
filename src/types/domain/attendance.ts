@@ -1,3 +1,5 @@
+export type AttendanceStatus = 'VALID' | 'NEEDS_CORRECTION' | 'CORRECTED' | 'TO_VERIFY';
+
 export interface AttendanceRecord {
   id: string;
   employeeId: string;
@@ -5,7 +7,7 @@ export interface AttendanceRecord {
   date: string;
   normalHours: number;
   extraHours: number;
-  status: 'VALID' | 'NEEDS_CORRECTION' | 'CORRECTED' | 'TO_VERIFY';
+  status: AttendanceStatus;
   originalData: {
     startTime: string;
     endTime: string;
@@ -20,11 +22,5 @@ export interface AttendanceRecord {
     newExtraHours: number;
     syncedToJibble: boolean;
   };
-  lastImportId: string; // Pour grouper les imports
-}
-
-export interface AttendanceImport {
-  startDate: string;
-  endDate: string;
-  employeeIds: string[];
+  lastImportId: string;
 }

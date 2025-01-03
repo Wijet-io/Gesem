@@ -1,13 +1,10 @@
+
 import { supabase } from '../../lib/supabase';
+import { JibbleTokenResponse } from '../../types/api/jibble';
 
 interface TokenCache {
   token: string;
   expiresAt: number;
-}
-
-interface TokenResponse {
-  access_token: string;
-  expires_in: number;
 }
 
 let tokenCache: TokenCache | null = null;
@@ -22,7 +19,7 @@ export async function getJibbleToken(): Promise<string> {
 
   try {
     // Appel à notre fonction Edge
-    const { data, error } = await supabase.functions.invoke<TokenResponse>('jibble-proxy');
+    const { data, error } = await supabase.functions.invoke<JibbleTokenResponse>('jibble-proxy');
 
     if (error) throw error;
     if (!data) throw new Error('No token data received');

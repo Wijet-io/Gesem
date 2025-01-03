@@ -10,7 +10,7 @@ import ImportModal from '../components/ImportModal';
 import { formatDate } from '../utils/date';
 import { formatHours } from '../utils/hours';
 import { getEmployees } from '../services/employee/employeeService';
-import { AttendanceRecord } from '../types/attendance';
+import { AttendanceRecord } from '../types/domain/attendance';
 
 export default function Attendance() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);

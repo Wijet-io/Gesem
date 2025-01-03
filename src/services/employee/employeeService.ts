@@ -1,4 +1,4 @@
-import { Employee, EmployeeUpdate, RateChangeLog } from '../../types/employee';
+import { Employee, EmployeeUpdate, RateChangeLog } from '../../types/domain/employee';
 import { supabase } from '../../lib/supabase';
 
 export async function getEmployees() {

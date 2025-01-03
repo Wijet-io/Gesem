@@ -7,7 +7,7 @@ import Table from '../components/ui/Table';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import EditableCell from '../components/EditableCell';
-import { Employee } from '../types/employee';
+import { Employee } from '../types/domain/employee';
 import toast from 'react-hot-toast';
 
 export default function Employees() {

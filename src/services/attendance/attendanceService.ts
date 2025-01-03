@@ -1,4 +1,4 @@
-import { AttendanceRecord, AttendanceImport } from '../../types/attendance';
+import { AttendanceRecord, AttendanceImport } from '../../types/domain/attendance';
 import { supabase } from '../../lib/supabase';
 import { getAttendanceForPeriod } from '../jibble/api';
 import { parseISO, format } from 'date-fns';
