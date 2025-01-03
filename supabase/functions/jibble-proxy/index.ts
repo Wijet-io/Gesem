@@ -13,10 +13,10 @@ serve(async (req) => {
   }
 
   try {
-    // Vérifier l'authentification
-    const authHeader = req.headers.get('Authorization');
+    // Récupérer le token d'authentification
+    const authHeader = req.headers.get('Authorization') || '';
     if (!authHeader) {
-      throw new Error('No authorization header');
+      throw new Error('No authorization header found');
     }
 
     // Créer le client Supabase avec service role
@@ -29,7 +29,7 @@ serve(async (req) => {
     const jwt = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(jwt);
     if (authError || !user) {
-      throw new Error('Invalid authentication');
+      throw new Error('Invalid JWT token');
     }
 
     // 1. Obtenir les credentials Jibble
@@ -78,12 +78,12 @@ serve(async (req) => {
         period: params.period,
         date: params.date,
         endDate: params.endDate,
-        personId: params.personId,
+        personIds: params.personId,
         $filter: params.filter
       });
 
       const timesheetsResponse = await fetch(
-        `https://time-attendance.prod.jibble.io/v1/TimesheetsSummary?${queryParams}`,
+        `https://time-attendance.prod.jibble.io/v1/TimesheetsSummary?${queryParams.toString()}`,
         {
           headers: {
             'Authorization': `Bearer ${jibbleToken}`,
