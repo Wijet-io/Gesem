@@ -46,7 +46,7 @@ export async function getAttendanceForPeriod(
           date: startDate,
           endDate: endDate,
           personId: employeeId,
-          filter: "total ne duration'PT0S'"
+          filter: "total ne duration'PT0S'" // Assurons-nous que c'est une chaîne valide
         }
       },
       headers: {
@@ -54,6 +54,8 @@ export async function getAttendanceForPeriod(
         Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
       }
     });
+
+    console.log('Response from Edge function:', data); // Ajout de logs pour debug
 
     if (error) throw new APIError(error.message, 'JIBBLE_API_ERROR');
     

@@ -62,7 +62,37 @@ serve(async (req) => {
     const { access_token: jibbleToken } = await tokenResponse.json();
 
     // 3. Traiter la requête selon l'action
-    const { action, params } = await req.json();
+    let requestData;
+    try {
+      requestData = await req.json();
+    } catch (error) {
+      console.error('Failed to parse request body:', error);
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        {
+          status: 400,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+    }
+
+    const { action, params } = requestData;
+
+    if (!action) {
+      return new Response(
+        JSON.stringify({ error: 'Missing action in request' }),
+        {
+          status: 400,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+    }
 
     let data;
     if (action === 'getEmployees') {
@@ -72,13 +102,18 @@ serve(async (req) => {
           'Accept': 'application/json'
         },
       });
+      
+      if (!employeesResponse.ok) {
+        throw new Error(`Jibble API error: ${employeesResponse.status}`);
+      }
+      
       data = await employeesResponse.json();
     } else if (action === 'getTimesheets') {
       const queryParams = new URLSearchParams({
         period: params.period,
         date: params.date,
         endDate: params.endDate,
-        personIds: params.personId,
+        personId: params.personId,
         $filter: params.filter
       });
 
