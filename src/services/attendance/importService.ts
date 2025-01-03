@@ -11,12 +11,17 @@ interface ImportProgress {
   message?: string;
 }
 
+import { validateAttendanceRecord } from './validators';
+import { APIError, handleResponse } from '../../utils/api';
+
 export class AttendanceImporter {
   private progress: ImportProgress = {
     total: 0,
     current: 0,
     status: 'pending'
   };
+  
+  private static readonly BATCH_SIZE = 50;
 
   private onProgressUpdate?: (progress: ImportProgress) => void;
 
@@ -24,6 +29,38 @@ export class AttendanceImporter {
     this.onProgressUpdate = callback;
   }
 
+  private async processBatch(
+    employees: Employee[],
+    startDate: string,
+    endDate: string
+  ): Promise<AttendanceRecord[]> {
+    const records: AttendanceRecord[] = [];
+    
+    for (const employee of employees) {
+      try {
+        const employeeRecords = await this.importForEmployee(
+          employee,
+          startDate,
+          endDate
+        );
+        records.push(...employeeRecords);
+        
+        this.updateProgress({
+          current: this.progress.current + 1,
+          message: `Importé pour ${employee.firstName} ${employee.lastName}`
+        });
+      } catch (error) {
+        console.error(`Failed to import for ${employee.id}:`, error);
+        if (error instanceof APIError) {
+          this.updateProgress({
+            message: `Erreur pour ${employee.firstName} ${employee.lastName}: ${error.message}`
+          });
+        }
+      }
+    }
+    
+    return records;
+  }
   private updateProgress(update: Partial<ImportProgress>) {
     this.progress = { ...this.progress, ...update };
     this.onProgressUpdate?.(this.progress);
@@ -82,6 +119,13 @@ export class AttendanceImporter {
             lastImportId: crypto.randomUUID()
           };
 
+          // Valider l'enregistrement avant l'insertion
+          try {
+            validateAttendanceRecord(record);
+          } catch (error) {
+            console.error(`Invalid attendance record for employee ${employee.id}:`, error);
+            return null;
+          }
           // Ne pas écraser les enregistrements corrigés
           const { data: existing } = await supabase
             .from('attendance_records')
@@ -97,7 +141,7 @@ export class AttendanceImporter {
               .select()
               .single();
 
-            if (error) throw error;
+            if (error) throw new APIError(error.message, 'DATABASE_ERROR');
             return data as AttendanceRecord;
           }
           return null;
@@ -107,7 +151,7 @@ export class AttendanceImporter {
       return records;
     } catch (error) {
       console.error(`Import failed for employee ${employee.id}:`, error);
-      throw error;
+      throw error instanceof APIError ? error : new APIError('Import failed', 'IMPORT_ERROR');
     }
   }
 
@@ -132,22 +176,12 @@ export class AttendanceImporter {
 
       this.updateProgress({ total: employees.length });
 
+      // Traiter les employés par lots
       const results: AttendanceRecord[] = [];
-      for (const employee of employees) {
-        try {
-          const records = await this.importForEmployee(employee, startDate, endDate);
-          if (records) {
-            results.push(...records);
-          }
-          
-          this.updateProgress({
-            current: this.progress.current + 1,
-            message: `Importé pour ${employee.first_name} ${employee.last_name}`
-          });
-        } catch (error) {
-          console.error(`Failed to import for ${employee.id}:`, error);
-          // Continue with next employee
-        }
+      for (let i = 0; i < employees.length; i += AttendanceImporter.BATCH_SIZE) {
+        const batch = employees.slice(i, i + AttendanceImporter.BATCH_SIZE);
+        const batchResults = await this.processBatch(batch, startDate, endDate);
+        results.push(...batchResults);
       }
 
       this.updateProgress({ 
@@ -159,7 +193,7 @@ export class AttendanceImporter {
     } catch (error) {
       this.updateProgress({
         status: 'error',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Erreur inconnue'
       });
       throw error;
     }

@@ -1,3 +1,15 @@
+export interface JibbleError {
+  code: string;
+  message: string;
+  details?: unknown;
+}
+
+export interface JibbleTokenResponse {
+  access_token: string;
+  expires_in: number;
+  token_type: string;
+}
+
 export interface JibblePerson {
   id: string;
   fullName: string;

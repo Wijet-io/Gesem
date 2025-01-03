@@ -1,5 +1,7 @@
 import { JibblePerson, TimesheetSummary } from './types';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../lib/supabase'; 
+import { JIBBLE_API, ERROR_MESSAGES } from './constants';
+import { handleResponse, APIError } from '../../utils/api';
 
 export async function getEmployees(): Promise<JibblePerson[]> {
   console.log('Getting employees from Jibble...');
@@ -13,21 +15,17 @@ export async function getEmployees(): Promise<JibblePerson[]> {
       }
     });
 
-    if (error) {
-      console.error('Jibble API error:', error);
-      throw error;
-    }
+    if (error) throw new APIError(error.message, 'JIBBLE_API_ERROR');
 
-    if (!data || !data.value) {
-      console.error('Invalid response structure:', data);
-      throw new Error('Invalid response from Jibble API');
+    if (!data?.value) {
+      throw new APIError(ERROR_MESSAGES.INVALID_RESPONSE, 'INVALID_RESPONSE');
     }
 
     console.log('Got employees from Jibble:', data.value.length);
     return data.value;
   } catch (error) {
     console.error('getEmployees error:', error);
-    throw error;
+    throw error instanceof APIError ? error : new APIError(ERROR_MESSAGES.FETCH_ERROR, 'FETCH_ERROR');
   }
 }
 
@@ -57,15 +55,16 @@ export async function getAttendanceForPeriod(
       }
     });
 
-    if (error) throw error;
-    if (!data || !data.value) {
-      throw new Error('Invalid response from Jibble API');
+    if (error) throw new APIError(error.message, 'JIBBLE_API_ERROR');
+    
+    if (!data?.value) {
+      throw new APIError(ERROR_MESSAGES.INVALID_RESPONSE, 'INVALID_RESPONSE');
     }
 
     console.log('Got attendance data:', data.value.length, 'records');
     return data.value;
   } catch (error) {
     console.error('getAttendanceForPeriod error:', error);
-    throw error;
+    throw error instanceof APIError ? error : new APIError(ERROR_MESSAGES.FETCH_ERROR, 'FETCH_ERROR');
   }
 }
