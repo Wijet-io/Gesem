@@ -1,5 +1,4 @@
 import { supabase } from '../../lib/supabase';
-import { getEmployees } from '../jibble/api';
 
 interface SyncResult {
   syncedCount: number;
@@ -10,87 +9,17 @@ export async function syncEmployeesFromJibble(): Promise<SyncResult> {
   console.log('Starting employee synchronization with Jibble...');
 
   try {
-    const jibbleEmployees = await getEmployees();
-    console.log('Received employees from Jibble:', jibbleEmployees.length);
-
-    if (!jibbleEmployees.length) {
-      throw new Error('No employees received from Jibble');
-    }
-
-    const activeEmployees = jibbleEmployees.filter(emp => 
-      emp.status === "Joined" && emp.role !== "Owner"
-    );
-    console.log('Active employees to sync:', activeEmployees.length);
-
-    const activeEmployeeIds = new Set(activeEmployees.map(emp => emp.id));
-    let syncedCount = 0;
-    const errors: string[] = [];
-
-    for (const employee of activeEmployees) {
-      try {
-        const [firstName, ...lastNameParts] = employee.fullName.split(' ');
-        const lastName = lastNameParts.join(' ');
-        
-        // Récupérer d'abord les données existantes
-        const { data: existingEmployee } = await supabase
-          .from('employees')
-          .select('normal_rate, extra_rate, min_hours')
-          .eq('id', employee.id)
-          .single();
-
-        // Préparer les données à mettre à jour
-        const employeeData = {
-          id: employee.id,
-          first_name: firstName,
-          last_name: lastName,
-          // Conserver les valeurs existantes ou utiliser les valeurs par défaut
-          normal_rate: existingEmployee?.normal_rate ?? 0,
-          extra_rate: existingEmployee?.extra_rate ?? 0,
-          min_hours: existingEmployee?.min_hours ?? 8
-        };
-
-        const { error: upsertError } = await supabase
-          .from('employees')
-          .upsert(employeeData);
-
-        if (upsertError) {
-          console.error('Failed to upsert employee:', employee.fullName, upsertError);
-          errors.push(`Failed to update/insert ${employee.fullName}: ${upsertError.message}`);
-          continue;
-        }
-
-        syncedCount++;
-        console.log('Synced employee:', employee.fullName);
-
-      } catch (err) {
-        const error = err as Error;
-        console.error('Error processing employee:', employee.fullName, error);
-        errors.push(`Error processing ${employee.fullName}: ${error.message}`);
+    const { data, error } = await supabase.functions.invoke('sync-employees', {
+      headers: {
+        Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
       }
-    }
+    });
 
-    const { error: deleteError } = await supabase
-      .from('employees')
-      .delete()
-      .not('id', 'in', Array.from(activeEmployeeIds));
+    if (error) throw error;
+    if (!data) throw new Error('No response from sync function');
 
-    if (deleteError) {
-      console.error('Error removing inactive employees:', deleteError);
-      errors.push(`Failed to remove inactive employees: ${deleteError.message}`);
-    }
-
-    if (errors.length > 0) {
-      console.warn('Sync completed with errors:', errors);
-    }
-    console.log('Sync completed. Synced:', syncedCount, 'Errors:', errors.length);
-
-    return {
-      syncedCount,
-      errors: errors.length > 0 ? errors : undefined
-    };
-
-  } catch (err) {
-    const error = err as Error;
+    return data as SyncResult;
+  } catch (error) {
     console.error('Sync failed:', error);
     throw error;
   }
