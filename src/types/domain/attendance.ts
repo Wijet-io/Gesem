@@ -1,5 +1,11 @@
 export type AttendanceStatus = 'VALID' | 'NEEDS_CORRECTION' | 'CORRECTED' | 'TO_VERIFY';
 
+export interface AttendanceImport {
+  startDate: string;
+  endDate: string;
+  employeeIds: string[];
+}
+
 export interface AttendanceRecord {
   id: string;
   employeeId: string;
