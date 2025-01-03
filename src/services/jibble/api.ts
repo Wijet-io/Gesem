@@ -47,7 +47,7 @@ export async function getAttendanceForPeriod(
           period: 'Custom',
           date: startDate,
           endDate: endDate,
-          personIds: employeeId,
+          personId: employeeId,
           filter: "total ne duration'PT0S'"
         }
       },

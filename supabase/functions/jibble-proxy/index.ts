@@ -78,7 +78,7 @@ serve(async (req) => {
         period: params.period,
         date: params.date,
         endDate: params.endDate,
-        personIds: params.personIds,
+        personId: params.personId,
         $filter: params.filter
       });
 
@@ -91,6 +91,11 @@ serve(async (req) => {
           },
         }
       );
+      
+      if (!timesheetsResponse.ok) {
+        throw new Error(`Jibble API error: ${timesheetsResponse.status}`);
+      }
+      
       data = await timesheetsResponse.json();
     } else {
       throw new Error('Invalid action');

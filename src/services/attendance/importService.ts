@@ -38,17 +38,24 @@ export class AttendanceImporter {
       const timesheets = await getAttendanceForPeriod(
         employee.id,
         startDate,
-        endDate,
+        endDate
       );
 
-      if (!timesheets?.length) {
+      if (!timesheets || !Array.isArray(timesheets)) {
         console.log(`No timesheets found for employee ${employee.id}`);
         return [];
       }
 
       const records = await Promise.all(
-        timesheets.filter(timesheet => timesheet.daily?.length > 0).map(async (timesheet) => {
+        timesheets
+        .filter(timesheet => timesheet.daily && Array.isArray(timesheet.daily) && timesheet.daily.length > 0)
+        .map(async (timesheet) => {
           const daily = timesheet.daily[0];
+          if (!daily || !daily.payrollHours) {
+            console.log(`Invalid timesheet data for employee ${employee.id}`);
+            return null;
+          }
+          
           const totalHours = parseHours(daily.payrollHours);
 
           // Déterminer le statut
