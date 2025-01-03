@@ -85,6 +85,15 @@ serve(async (req) => {
     const activeEmployees = jibbleEmployees.filter(emp => 
       emp.status === "Joined" && emp.role !== "Owner"
     );
+    
+    // Récupérer les données existantes de tous les employés
+    const { data: existingEmployees } = await supabaseAdmin
+      .from('employees')
+      .select('id, normal_rate, extra_rate, min_hours');
+
+    const existingEmployeesMap = new Map(
+      existingEmployees?.map(emp => [emp.id, emp]) || []
+    );
 
     let syncedCount = 0;
     const errors: string[] = [];
@@ -114,9 +123,9 @@ serve(async (req) => {
             id: employee.id,
             first_name: firstName,
             last_name: lastName,
-            normal_rate: 0,
-            extra_rate: 0,
-            min_hours: 8
+            normal_rate: existing?.normal_rate ?? 0,
+            extra_rate: existing?.extra_rate ?? 0,
+            min_hours: existing?.min_hours ?? 8
           });
 
         if (upsertError) {
